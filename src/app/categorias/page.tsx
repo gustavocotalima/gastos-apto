@@ -1,67 +1,29 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { CategoryForm } from "@/components/category-form"
-import { CategoriesList } from "@/components/categories-list"
-import { ArrowLeft, RefreshCw } from "lucide-react"
+import { CategoriesListServer } from "@/components/categories-list-server"
+import { ArrowLeft } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
 import Link from "next/link"
+import { auth } from "@/lib/auth"
+import { prisma } from "@/lib/prisma"
+import { redirect } from "next/navigation"
 
-interface Category {
-  id: string
-  name: string
-  splitType: "DEFAULT" | "CUSTOM"
-  user1user2?: number
-  user3?: number
+async function getCategories() {
+  const categories = await prisma.category.findMany({
+    orderBy: { name: "asc" },
+  })
+  return categories
 }
 
-export default function CategoriesPage() {
-  const { data: session } = useSession()
-  const [categories, setCategories] = useState<Category[]>([])
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-
-  useEffect(() => {
-    fetchCategories()
-  }, [])
-
-  const fetchCategories = async () => {
-    try {
-      const response = await fetch("/api/categories")
-      if (response.ok) {
-        const data = await response.json()
-        setCategories(data)
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error)
-    } finally {
-      setLoading(false)
-    }
+export default async function CategoriesPage() {
+  const session = await auth()
+  
+  if (!session) {
+    redirect("/login")
   }
 
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await fetchCategories()
-    setRefreshing(false)
-  }
-
-  const handleCategoryChanged = () => {
-    fetchCategories()
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p>Carregando...</p>
-        </div>
-      </div>
-    )
-  }
+  const categories = await getCategories()
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,26 +57,11 @@ export default function CategoriesPage() {
                   Gerencie as categorias e configure como os gastos devem ser divididos
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="gap-2"
-                >
-                  <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  Atualizar
-                </Button>
-                <CategoryForm onCategoryChanged={handleCategoryChanged} />
-              </div>
+              <CategoryForm onCategoryChanged={() => window.location.reload()} />
             </div>
           </CardHeader>
           <CardContent>
-            <CategoriesList 
-              categories={categories} 
-              onCategoryChanged={handleCategoryChanged} 
-            />
+            <CategoriesListServer categories={categories} />
           </CardContent>
         </Card>
 

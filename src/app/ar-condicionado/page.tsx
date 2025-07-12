@@ -1,13 +1,18 @@
-"use client"
-
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
 import Link from "next/link"
 import { AirConditioningForm } from "@/components/air-conditioning-form"
+import { auth } from "@/lib/auth"
+import { redirect } from "next/navigation"
 
-export default function AirConditioningPage() {
+export default async function AirConditioningPage() {
+  const session = await auth()
+  
+  if (!session) {
+    redirect("/login")
+  }
+
   const currentMonth = new Date().toLocaleDateString("pt-BR", { 
     month: "long", 
     year: "numeric" 
