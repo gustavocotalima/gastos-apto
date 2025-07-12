@@ -3,6 +3,8 @@ import { ExpensesTableServer } from "@/components/expenses-table-server"
 import { DashboardCardsServer } from "@/components/dashboard-cards-server"
 import { PageHeader } from "@/components/page-header"
 import { InteractiveWrapper } from "@/components/interactive-wrapper"
+import { MonthNavigation } from "@/components/month-navigation"
+import { MonthSummaryWrapper } from "@/components/month-summary-wrapper"
 import { Toaster } from "@/components/ui/sonner"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -54,7 +56,8 @@ export default async function Home({
       <PageHeader />
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <InteractiveWrapper initialMonth={selectedMonth} />
+        {/* Month Navigation */}
+        <MonthNavigation initialMonth={selectedMonth} />
 
         {/* Dashboard Cards */}
         <DashboardCardsServer expenses={expenses} />
@@ -62,15 +65,23 @@ export default async function Home({
         {/* Expenses Section */}
         <Card>
           <CardHeader>
-            <CardTitle>Gastos de {getMonthDisplay(selectedMonth)}</CardTitle>
-            <CardDescription>
-              Gerencie os gastos do apartamento
-            </CardDescription>
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle>Gastos de {getMonthDisplay(selectedMonth)}</CardTitle>
+                <CardDescription>
+                  Gerencie os gastos do apartamento
+                </CardDescription>
+              </div>
+              <InteractiveWrapper />
+            </div>
           </CardHeader>
           <CardContent>
             <ExpensesTableServer expenses={expenses} />
           </CardContent>
         </Card>
+
+        {/* Month Summary */}
+        <MonthSummaryWrapper monthYear={selectedMonth} />
       </main>
     </div>
   )
