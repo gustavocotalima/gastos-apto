@@ -8,6 +8,7 @@ const expenseSchema = z.object({
   amount: z.number().positive(),
   description: z.string().min(1),
   categoryId: z.string(),
+  paidById: z.string(),
 })
 
 export async function GET(request: Request) {
@@ -52,7 +53,6 @@ export async function POST(request: Request) {
       data: {
         ...validatedData,
         monthYear,
-        paidById: session.user.id,
       },
       include: {
         category: true,

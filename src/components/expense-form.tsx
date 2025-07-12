@@ -15,6 +15,11 @@ interface Category {
   name: string
 }
 
+interface User {
+  id: string
+  name: string
+}
+
 interface ExpenseFormProps {
   onExpenseAdded: () => void
 }
@@ -23,15 +28,18 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
+  const [users, setUsers] = useState<User[]>([])
   
   // Form data
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [amount, setAmount] = useState("")
   const [description, setDescription] = useState("")
   const [categoryId, setCategoryId] = useState("")
+  const [paidById, setPaidById] = useState("")
 
   useEffect(() => {
     fetchCategories()
+    fetchUsers()
   }, [])
 
   const fetchCategories = async () => {
@@ -43,6 +51,18 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
       }
     } catch (error) {
       toast.error("Erro ao carregar categorias")
+    }
+  }
+
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch("/api/users")
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+      }
+    } catch (error) {
+      toast.error("Erro ao carregar usuários")
     }
   }
 
@@ -61,6 +81,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
           amount: parseFloat(amount),
           description,
           categoryId,
+          paidById,
         }),
       })
 
@@ -84,6 +105,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
     setAmount("")
     setDescription("")
     setCategoryId("")
+    setPaidById("")
   }
 
   return (
@@ -125,6 +147,22 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               placeholder="0,00"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paidBy">Quem pagou</Label>
+            <Select value={paidById} onValueChange={setPaidById} required>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione quem pagou" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
