@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ExpenseForm } from "@/components/expense-form"
 import { ExpensesTable } from "@/components/expenses-table"
 import { DashboardCards } from "@/components/dashboard-cards"
+import { MonthSelector } from "@/components/month-selector"
+import { MonthSummary } from "@/components/month-summary"
 import { LogOut, RefreshCw, Settings, Zap } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
 import Link from "next/link"
@@ -34,19 +36,24 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7))
 
-  const currentMonth = new Date().toLocaleDateString("pt-BR", { 
-    month: "long", 
-    year: "numeric" 
-  })
+  const getMonthDisplay = (monthYear: string) => {
+    const [year, month] = monthYear.split("-")
+    const date = new Date(parseInt(year), parseInt(month) - 1)
+    return date.toLocaleDateString("pt-BR", { 
+      month: "long", 
+      year: "numeric" 
+    })
+  }
 
   useEffect(() => {
     fetchExpenses()
-  }, [])
+  }, [selectedMonth])
 
   const fetchExpenses = async () => {
     try {
-      const response = await fetch("/api/expenses")
+      const response = await fetch(`/api/expenses?monthYear=${selectedMonth}`)
       if (response.ok) {
         const data = await response.json()
         setExpenses(data)
@@ -116,6 +123,12 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Month Navigation */}
+        <MonthSelector 
+          selectedMonth={selectedMonth} 
+          onMonthChange={setSelectedMonth} 
+        />
+
         {/* Dashboard Cards */}
         <DashboardCards expenses={expenses} />
 
@@ -124,7 +137,7 @@ export default function Home() {
           <CardHeader>
             <div className="flex justify-between items-start">
               <div>
-                <CardTitle>Gastos de {currentMonth}</CardTitle>
+                <CardTitle>Gastos de {getMonthDisplay(selectedMonth)}</CardTitle>
                 <CardDescription>
                   Gerencie os gastos do apartamento
                 </CardDescription>
@@ -151,6 +164,12 @@ export default function Home() {
             />
           </CardContent>
         </Card>
+
+        {/* Month Summary */}
+        <MonthSummary 
+          monthYear={selectedMonth} 
+          onStatusChanged={fetchExpenses}
+        />
       </main>
     </div>
   )
