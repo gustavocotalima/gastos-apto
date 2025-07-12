@@ -23,8 +23,8 @@ interface ExpenseChartsProps {
 }
 
 const COLORS = [
-  '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#0088fe', '#00c49f',
-  '#ffbb28', '#ff8042', '#8dd1e1', '#d084d0', '#ffb347', '#87ceeb'
+  '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#06b6d4',
+  '#eab308', '#f97316', '#14b8a6', '#ec4899', '#84cc16', '#6366f1'
 ]
 
 export function ExpenseCharts({ expenses }: ExpenseChartsProps) {
@@ -138,7 +138,7 @@ export function ExpenseCharts({ expenses }: ExpenseChartsProps) {
               <XAxis dataKey="name" />
               <YAxis tickFormatter={(value) => `R$ ${value}`} />
               <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-              <Bar dataKey="value" fill="#8884d8" />
+              <Bar dataKey="value" fill="#8b5cf6" />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

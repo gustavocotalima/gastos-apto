@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { LogOut, Settings, Zap } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
+import { ThemeToggle } from "./theme-toggle"
 
 export function PageHeader() {
   const { data: session } = useSession()
@@ -16,6 +17,7 @@ export function PageHeader() {
           <p className="text-muted-foreground">Olá, {session?.user?.name}</p>
         </div>
         <div className="flex gap-2">
+          <ThemeToggle />
           <Link href="/ar-condicionado">
             <Button variant="outline" className="gap-2">
               <Zap className="h-4 w-4" />
