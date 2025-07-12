@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs"
 import { z } from "zod"
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().min(1),
   password: z.string().min(6),
 })
 
@@ -28,10 +28,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        const { email, password } = validatedFields.data
+        const { email: username, password } = validatedFields.data
 
-        const user = await prisma.user.findUnique({
-          where: { email },
+        const user = await prisma.user.findFirst({
+          where: { 
+            name: username 
+          },
         })
 
         if (!user || !user.password) {

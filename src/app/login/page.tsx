@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -23,7 +23,7 @@ export default function LoginPage() {
 
     try {
       const result = await signIn("credentials", {
-        email,
+        email: username,
         password,
         redirect: false,
       })
@@ -55,14 +55,15 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Usuário</Label>
               <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
+                placeholder="Digite seu nome de usuário"
               />
             </div>
             <div className="space-y-2">
@@ -74,6 +75,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
+                placeholder="Digite sua senha"
               />
             </div>
             {error && (
@@ -83,12 +85,6 @@ export default function LoginPage() {
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>
-          <div className="mt-6 text-sm text-center text-muted-foreground">
-            <p>Credenciais de teste:</p>
-            <p>user1@example.com / REDACTED</p>
-            <p>user2@example.com / REDACTED</p>
-            <p>user3@example.com / REDACTED</p>
-          </div>
         </CardContent>
       </Card>
     </div>
