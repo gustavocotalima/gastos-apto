@@ -1,0 +1,136 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  
+  paidExpenses Expense[]
+  airConditioningUsage AirConditioningUsage[]
+}
+
+model Category {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  splitType  SplitType @default(DEFAULT)
+  user1user2 Float? // percentage for user1+user2 (0-100)
+  user3      Float?    // percentage for user3 (0-100)
+  createdAt  DateTime @default(now())
+  
+  expenses   Expense[]
+}
+
+model Expense {
+  id           String   @id @default(cuid())
+  date         DateTime
+  amount       Float
+  description  String
+  categoryId   String
+  paidById     String
+  user1Share Float?   // override values
+  user2Share  Float?
+  user3Share   Float?
+  monthYear    String   // "2024-03" format
+  createdAt    DateTime @default(now())
+  
+  category     Category @relation(fields: [categoryId], references: [id])
+  paidBy       User     @relation(fields: [paidById], references: [id])
+  
+  @@index([monthYear])
+  @@index([categoryId])
+  @@index([paidById])
+}
+
+model CipConfiguration {
+  id                   String   @id @default(cuid())
+  monthYear            String   @unique
+  baseCalculationValue Float    // Conv4 - % Tarifa B4A
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  
+  tiers                CipTier[]
+  
+  @@index([monthYear])
+}
+
+model CipTier {
+  id               String  @id @default(cuid())
+  configurationId  String
+  minKwh           Float
+  maxKwh           Float?  // null for "above X"
+  percentage       Float
+  
+  configuration    CipConfiguration @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  
+  @@index([configurationId])
+}
+
+model AirConditioningUsage {
+  id                  String   @id @default(cuid())
+  monthYear           String
+  userId              String
+  airConsumptionKwh   Float    // AC consumption
+  totalConsumptionKwh Float    // total apartment consumption
+  totalBillAmount     Float    // total energy bill
+  kwhUnitPrice        Float    // price per kWh
+  totalCipAmount      Float    // total CIP paid
+  calculatedAmount    Float    // amount user1 must pay
+  cipTierWithoutAir   Float    // CIP tier without AC
+  cipTierWithAir      Float    // CIP tier with AC
+  createdAt           DateTime @default(now())
+  
+  user                User     @relation(fields: [userId], references: [id])
+  
+  @@index([monthYear])
+  @@index([userId])
+}
+
+model MonthlySettlement {
+  id        String   @id @default(cuid())
+  monthYear String   @unique
+  closedAt  DateTime?
+  status    SettlementStatus @default(OPEN)
+  createdAt DateTime @default(now())
+  
+  settlements Settlement[]
+  
+  @@index([monthYear])
+  @@index([status])
+}
+
+model Settlement {
+  id                  String  @id @default(cuid())
+  monthlySettlementId String
+  fromUserId          String
+  toUserId            String
+  amount              Float
+  
+  monthlySettlement   MonthlySettlement @relation(fields: [monthlySettlementId], references: [id], onDelete: Cascade)
+  
+  @@index([monthlySettlementId])
+}
+
+enum SplitType {
+  DEFAULT  // 2/3 user1+user2, 1/3 user3
+  CUSTOM   // custom percentages
+}
+
+enum SettlementStatus {
+  OPEN
+  CLOSED
+}
