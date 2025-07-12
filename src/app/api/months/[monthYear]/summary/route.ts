@@ -24,17 +24,27 @@ export async function GET(
     })
 
     // Get air conditioning data
-    const airConditioningData = await prisma.airConditioningUsage.findFirst({
-      where: { monthYear },
-    })
+    let airConditioningData = null
+    try {
+      airConditioningData = await prisma.airConditioningUsage.findFirst({
+        where: { monthYear },
+      })
+    } catch (error) {
+      // Table might not exist yet
+    }
 
     // Get settlement data
-    const settlement = await prisma.monthlySettlement.findUnique({
-      where: { monthYear },
-      include: {
-        settlements: true,
-      },
-    })
+    let settlement = null
+    try {
+      settlement = await prisma.monthlySettlement.findUnique({
+        where: { monthYear },
+        include: {
+          settlements: true,
+        },
+      })
+    } catch (error) {
+      // Table might not exist yet
+    }
 
     // Calculate totals and splits
     const calculateSplit = () => {
@@ -85,7 +95,7 @@ export async function GET(
     }, {} as Record<string, number>)
 
     // Calculate balances (what each person owes or is owed)
-    const calculateBalances = () => {
+    const calculateBalances = async () => {
       const users = await prisma.user.findMany({
         select: { id: true, name: true },
       })

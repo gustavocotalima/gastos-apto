@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/page-header"
 import { InteractiveWrapper } from "@/components/interactive-wrapper"
 import { MonthNavigation } from "@/components/month-navigation"
 import { MonthSummaryWrapper } from "@/components/month-summary-wrapper"
+import { ExpenseCharts } from "@/components/expense-charts"
 import { Toaster } from "@/components/ui/sonner"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
@@ -61,6 +62,9 @@ export default async function Home({
 
         {/* Dashboard Cards */}
         <DashboardCardsServer expenses={expenses} />
+
+        {/* Charts Section */}
+        <ExpenseCharts expenses={expenses} />
 
         {/* Expenses Section */}
         <Card>

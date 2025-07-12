@@ -31,19 +31,29 @@ export async function GET() {
         })
 
         // Get air conditioning data for the month (if exists)
-        const airConditioningData = await prisma.airConditioningUsage.findFirst({
-          where: { monthYear },
-          select: {
-            calculatedAmount: true,
-            airConsumptionKwh: true,
-          },
-        })
+        let airConditioningData = null
+        try {
+          airConditioningData = await prisma.airConditioningUsage.findFirst({
+            where: { monthYear },
+            select: {
+              calculatedAmount: true,
+              airConsumptionKwh: true,
+            },
+          })
+        } catch (error) {
+          // Table might not exist yet
+        }
 
         // Check if month is closed (has settlement)
-        const settlement = await prisma.monthlySettlement.findUnique({
-          where: { monthYear },
-          select: { status: true, closedAt: true },
-        })
+        let settlement = null
+        try {
+          settlement = await prisma.monthlySettlement.findUnique({
+            where: { monthYear },
+            select: { status: true, closedAt: true },
+          })
+        } catch (error) {
+          // Table might not exist yet
+        }
 
         return {
           monthYear,

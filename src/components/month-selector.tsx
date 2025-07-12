@@ -25,8 +25,10 @@ interface MonthSelectorProps {
 export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorProps) {
   const [months, setMonths] = useState<MonthData[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     fetchMonths()
   }, [])
 
@@ -75,7 +77,7 @@ export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorPro
 
   const selectedMonthData = months.find(month => month.monthYear === selectedMonth)
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -115,12 +117,7 @@ export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorPro
             <SelectContent>
               {months.map((month) => (
                 <SelectItem key={month.monthYear} value={month.monthYear}>
-                  <div className="flex items-center gap-2">
-                    <span>{formatMonthDisplay(month.monthYear)}</span>
-                    {month.status === "CLOSED" && (
-                      <Lock className="h-3 w-3 text-muted-foreground" />
-                    )}
-                  </div>
+                  {`${formatMonthDisplay(month.monthYear)}${month.status === "CLOSED" ? " 🔒" : ""}`}
                 </SelectItem>
               ))}
             </SelectContent>

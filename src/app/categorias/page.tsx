@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CategoryForm } from "@/components/category-form"
+import { CategoryFormWrapper } from "@/components/category-form-wrapper"
 import { CategoriesListServer } from "@/components/categories-list-server"
 import { ArrowLeft } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
@@ -57,7 +57,7 @@ export default async function CategoriesPage() {
                   Gerencie as categorias e configure como os gastos devem ser divididos
                 </CardDescription>
               </div>
-              <CategoryForm onCategoryChanged={() => window.location.reload()} />
+              <CategoryFormWrapper />
             </div>
           </CardHeader>
           <CardContent>

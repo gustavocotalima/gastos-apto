@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Edit } from "lucide-react"
 import { CategoryForm } from "./category-form"
+import { useRouter } from "next/navigation"
 
 interface Category {
   id: string
@@ -17,10 +18,16 @@ interface CategoryEditButtonProps {
 }
 
 export function CategoryEditButton({ category }: CategoryEditButtonProps) {
+  const router = useRouter()
+
+  const handleCategoryChanged = () => {
+    router.refresh()
+  }
+
   return (
     <CategoryForm
       category={category}
-      onCategoryChanged={() => window.location.reload()}
+      onCategoryChanged={handleCategoryChanged}
       trigger={
         <Button
           variant="ghost"
