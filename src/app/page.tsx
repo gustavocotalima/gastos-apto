@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ExpenseForm } from "@/components/expense-form"
 import { ExpensesTable } from "@/components/expenses-table"
 import { DashboardCards } from "@/components/dashboard-cards"
-import { LogOut, RefreshCw, Settings } from "lucide-react"
+import { LogOut, RefreshCw, Settings, Zap } from "lucide-react"
 import { Toaster } from "@/components/ui/sonner"
 import Link from "next/link"
 
@@ -95,6 +95,12 @@ export default function Home() {
             <p className="text-muted-foreground">Olá, {session?.user?.name}</p>
           </div>
           <div className="flex gap-2">
+            <Link href="/ar-condicionado">
+              <Button variant="outline" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Ar Condicionado
+              </Button>
+            </Link>
             <Link href="/categorias">
               <Button variant="outline" className="gap-2">
                 <Settings className="h-4 w-4" />
