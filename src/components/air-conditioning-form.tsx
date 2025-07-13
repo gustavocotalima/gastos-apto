@@ -129,11 +129,11 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
                 <Input
                   id="air-consumption"
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   min="0"
                   value={airConsumption}
                   onChange={(e) => setAirConsumption(e.target.value)}
-                  placeholder="Ex: 150.5"
+                  placeholder="Ex: 150.527"
                   required
                 />
               </div>
@@ -143,7 +143,7 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
                 <Input
                   id="total-consumption"
                   type="number"
-                  step="0.01"
+                  step="0.001"
                   min="0"
                   value={totalConsumption}
                   onChange={(e) => setTotalConsumption(e.target.value)}
@@ -171,11 +171,11 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
                 <Input
                   id="unit-price"
                   type="number"
-                  step="0.01"
+                  step="0.00000001"
                   min="0"
                   value={unitPrice}
                   onChange={(e) => setUnitPrice(e.target.value)}
-                  placeholder="Ex: 0.75"
+                  placeholder="Ex: 1.00872125"
                   required
                 />
               </div>
