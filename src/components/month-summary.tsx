@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -22,16 +22,18 @@ interface Settlement {
   amount: number
 }
 
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
 interface MonthSummaryData {
   monthYear: string
   totalExpenses: number
   expenseCount: number
   airConditioningAmount: number
-  splits: {
-    user1: number
-    user2: number
-    user3: number
-  }
+  splits: Record<string, number>
   balances: Balance[]
   settlement?: {
     status: "OPEN" | "CLOSED"
@@ -39,6 +41,7 @@ interface MonthSummaryData {
     closedAt?: string
   }
   status: "OPEN" | "CLOSED"
+  activeUsers?: User[]
 }
 
 interface MonthSummaryProps {
@@ -51,11 +54,7 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
   const [loading, setLoading] = useState(true)
   const [closing, setClosing] = useState(false)
 
-  useEffect(() => {
-    fetchSummary()
-  }, [monthYear])
-
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const response = await fetch(`/api/months/${monthYear}/summary`)
       if (response.ok) {
@@ -67,7 +66,11 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
     } finally {
       setLoading(false)
     }
-  }
+  }, [monthYear])
+
+  useEffect(() => {
+    fetchSummary()
+  }, [fetchSummary])
 
   const handleCloseMonth = async () => {
     if (!confirm("Tem certeza que deseja fechar este mês? Esta ação não pode ser desfeita.")) {
@@ -137,6 +140,8 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
     )
   }
 
+  const totalAmount = data.totalExpenses + data.airConditioningAmount
+
   return (
     <Card>
       <CardHeader>
@@ -171,12 +176,11 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">{formatCurrency(data.airConditioningAmount)}</div>
               <div className="text-sm text-muted-foreground">Ar Condicionado</div>
-              <div className="text-xs text-muted-foreground">user1</div>
             </div>
           )}
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(data.totalExpenses + data.airConditioningAmount)}
+              {formatCurrency(totalAmount)}
             </div>
             <div className="text-sm text-muted-foreground">Total Geral</div>
           </div>
@@ -190,19 +194,13 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
             <TrendingUp className="h-4 w-4" />
             Divisão Individual
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="font-bold">{formatCurrency(data.splits.user1)}</div>
-              <div className="text-sm text-muted-foreground">user1</div>
-            </div>
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="font-bold">{formatCurrency(data.splits.user2)}</div>
-              <div className="text-sm text-muted-foreground">user2</div>
-            </div>
-            <div className="text-center p-3 bg-muted rounded-lg">
-              <div className="font-bold">{formatCurrency(data.splits.user3)}</div>
-              <div className="text-sm text-muted-foreground">user3</div>
-            </div>
+          <div className={`grid grid-cols-1 md:grid-cols-${Object.keys(data.splits).length} gap-4`}>
+            {Object.entries(data.splits).map(([userName, amount]) => (
+              <div key={userName} className="text-center p-3 bg-muted rounded-lg">
+                <div className="font-bold">{formatCurrency(amount)}</div>
+                <div className="text-sm text-muted-foreground">{userName}</div>
+              </div>
+            ))}
           </div>
         </div>
 

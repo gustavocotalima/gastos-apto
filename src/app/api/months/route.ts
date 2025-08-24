@@ -40,7 +40,7 @@ export async function GET() {
               airConsumptionKwh: true,
             },
           })
-        } catch (error) {
+        } catch {
           // Table might not exist yet
         }
 
@@ -51,7 +51,7 @@ export async function GET() {
             where: { monthYear },
             select: { status: true, closedAt: true },
           })
-        } catch (error) {
+        } catch {
           // Table might not exist yet
         }
 

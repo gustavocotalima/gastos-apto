@@ -6,17 +6,18 @@ import { useCallback } from "react"
 
 interface MonthNavigationProps {
   initialMonth: string
+  basePath?: string
 }
 
-export function MonthNavigation({ initialMonth }: MonthNavigationProps) {
+export function MonthNavigation({ initialMonth, basePath = "/" }: MonthNavigationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const handleMonthChange = useCallback((monthYear: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('month', monthYear)
-    router.push(`/?${params.toString()}`)
-  }, [router, searchParams])
+    router.push(`${basePath}?${params.toString()}`)
+  }, [router, searchParams, basePath])
 
   return (
     <MonthSelectorSimple 

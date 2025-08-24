@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ExpenseForm } from "./expense-form"
 
 export function InteractiveWrapper() {

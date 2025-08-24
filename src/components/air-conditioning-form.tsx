@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,11 +39,7 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
   const [unitPrice, setUnitPrice] = useState("")
   const [totalCip, setTotalCip] = useState("")
 
-  useEffect(() => {
-    fetchExistingData()
-  }, [currentMonth])
-
-  const fetchExistingData = async () => {
+  const fetchExistingData = useCallback(async () => {
     try {
       const response = await fetch(`/api/air-conditioning?monthYear=${currentMonth}`)
       if (response.ok) {
@@ -60,7 +56,11 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
     } catch (error) {
       console.error("Error fetching existing data:", error)
     }
-  }
+  }, [currentMonth])
+
+  useEffect(() => {
+    fetchExistingData()
+  }, [fetchExistingData])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

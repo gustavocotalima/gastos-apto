@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { LogOut, Settings, Zap } from "lucide-react"
+import { LogOut, Settings, Zap, Home } from "lucide-react"
 import { signOut, useSession } from "next-auth/react"
 import Link from "next/link"
 import { ThemeToggle } from "./theme-toggle"
@@ -18,6 +18,12 @@ export function PageHeader() {
         </div>
         <div className="flex gap-2">
           <ThemeToggle />
+          <Link href="/">
+            <Button variant="outline" className="gap-2">
+              <Home className="h-4 w-4" />
+              Início
+            </Button>
+          </Link>
           <Link href="/ar-condicionado">
             <Button variant="outline" className="gap-2">
               <Zap className="h-4 w-4" />
@@ -28,6 +34,12 @@ export function PageHeader() {
             <Button variant="outline" className="gap-2">
               <Settings className="h-4 w-4" />
               Categorias
+            </Button>
+          </Link>
+          <Link href="/configuracoes">
+            <Button variant="outline" className="gap-2">
+              <Settings className="h-4 w-4" />
+              Configurações CIP
             </Button>
           </Link>
           <Button variant="outline" onClick={() => signOut()} className="gap-2">

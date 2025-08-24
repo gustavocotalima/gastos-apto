@@ -12,7 +12,6 @@ export const metadata: Metadata = {
   title: "Gastos Apto 203",
   description: "Site para calculo de gastos do apartamento 203",
   manifest: "/manifest.json",
-  themeColor: "#000000",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -27,6 +26,10 @@ export const metadata: Metadata = {
       { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
   },
+};
+
+export const viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

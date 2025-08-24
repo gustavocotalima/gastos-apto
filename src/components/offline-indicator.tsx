@@ -2,7 +2,7 @@
 
 import { useOnlineStatus } from "@/hooks/use-online-status"
 import { Card } from "@/components/ui/card"
-import { WifiOff, Wifi } from "lucide-react"
+import { WifiOff } from "lucide-react"
 
 export function OfflineIndicator() {
   const isOnline = useOnlineStatus()

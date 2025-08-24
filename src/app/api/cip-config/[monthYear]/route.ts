@@ -16,7 +16,7 @@ const cipConfigUpdateSchema = z.object({
 
 export async function PUT(
   request: Request,
-  { params }: { params: { monthYear: string } }
+  { params }: { params: Promise<{ monthYear: string }> }
 ) {
   try {
     const session = await auth()
@@ -28,13 +28,15 @@ export async function PUT(
     const validatedData = cipConfigUpdateSchema.parse(body)
 
     // Update the configuration
-    const updateData: any = {}
+    const updateData: { baseCalculationValue?: number } = {}
     if (validatedData.baseCalculationValue !== undefined) {
       updateData.baseCalculationValue = validatedData.baseCalculationValue
     }
 
+    const { monthYear } = await params
+
     const config = await prisma.cipConfiguration.update({
-      where: { monthYear: params.monthYear },
+      where: { monthYear },
       data: updateData,
       include: {
         tiers: {
@@ -61,7 +63,7 @@ export async function PUT(
 
     // Fetch updated config with tiers
     const updatedConfig = await prisma.cipConfiguration.findUnique({
-      where: { monthYear: params.monthYear },
+      where: { monthYear },
       include: {
         tiers: {
           orderBy: { minKwh: "asc" },

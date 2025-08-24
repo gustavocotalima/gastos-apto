@@ -6,59 +6,46 @@ const prisma = new PrismaClient()
 async function main() {
   console.log("Starting seed...")
 
-  // Create users
+  // Default password for all users
   const hashedPassword = await bcrypt.hash("REDACTED", 12)
 
-  const user1 = await prisma.user.upsert({
-    where: { email: "user1@example.com" },
-    update: {},
-    create: {
-      name: "user1",
-      email: "user1@example.com",
-      password: hashedPassword,
-    },
-  })
+  // Check if there are any users already
+  const existingUsers = await prisma.user.findMany()
+  
+  if (existingUsers.length === 0) {
+    console.log("No users found. Please create users manually or through the application.")
+    console.log("Example: Create users via the API or database directly")
+  } else {
+    console.log(`Found ${existingUsers.length} existing users:`)
+    existingUsers.forEach(user => {
+      console.log(`- ${user.name} (${user.email})`)
+    })
+  }
 
-  const user2 = await prisma.user.upsert({
-    where: { email: "user2@example.com" },
-    update: {},
-    create: {
-      name: "user2",
-      email: "user2@example.com",
-      password: hashedPassword,
-    },
-  })
-
-  const user3 = await prisma.user.upsert({
-    where: { email: "user3@example.com" },
-    update: {},
-    create: {
-      name: "user3",
-      email: "user3@example.com",
-      password: hashedPassword,
-    },
-  })
-
-  // Create default categories
+  // Create default categories with equal split (works with any number of users)
   const categories = [
-    { name: "Condomínio", splitType: "DEFAULT" as const },
-    { name: "Internet", splitType: "DEFAULT" as const },
-    { name: "Aluguel", splitType: "DEFAULT" as const },
-    { name: "Supermercado", splitType: "DEFAULT" as const },
-    { name: "Energia", splitType: "DEFAULT" as const },
-    { name: "Desconto Total", splitType: "CUSTOM" as const, user1user2: 0, user3: 100 },
-    { name: "Garagem user3", splitType: "CUSTOM" as const, user1user2: 33.33, user3: 66.67 },
+    { name: "Rent", splitType: "EQUAL" as const },
+    { name: "Utilities", splitType: "EQUAL" as const },
+    { name: "Internet", splitType: "EQUAL" as const },
+    { name: "Groceries", splitType: "EQUAL" as const },
+    { name: "Electricity", splitType: "EQUAL" as const },
+    { name: "Cleaning", splitType: "EQUAL" as const },
+    { name: "Maintenance", splitType: "EQUAL" as const },
   ]
 
   for (const category of categories) {
     await prisma.category.upsert({
       where: { name: category.name },
       update: {},
-      create: category,
+      create: {
+        name: category.name,
+        splitType: category.splitType,
+      },
     })
   }
+  console.log(`Created/Updated ${categories.length} categories with EQUAL split type`)
 
-  // Create current month CIP configuration
+  // Create current month CIP configuration (independent of users)
   const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
   
   await prisma.cipConfiguration.upsert({
@@ -81,12 +68,15 @@ async function main() {
       },
     },
   })
+  console.log(`Created/Updated CIP configuration for ${currentMonth}`)
 
-  console.log("Seed completed successfully!")
-  console.log("Users created:")
-  console.log("- user1: user1@example.com / REDACTED")
-  console.log("- user2: user2@example.com / REDACTED")
-  console.log("- user3: user3@example.com / REDACTED")
+  console.log("\nSeed completed successfully!")
+  console.log("\nNote: This application works with any number of users.")
+  console.log("Users can be created through:")
+  console.log("1. The application's user management interface")
+  console.log("2. Direct database insertion")
+  console.log("3. API endpoints")
+  console.log("\nAll expenses will be automatically split among active users.")
 }
 
 main()

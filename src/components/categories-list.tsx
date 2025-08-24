@@ -15,12 +15,19 @@ import { Trash2, Edit } from "lucide-react"
 import { toast } from "sonner"
 import { CategoryForm } from "./category-form"
 
+interface CategorySplit {
+  userId: string
+  percentage: number
+  user: {
+    name: string
+  }
+}
+
 interface Category {
   id: string
   name: string
-  splitType: "DEFAULT" | "CUSTOM"
-  user1user2?: number
-  user3?: number
+  splitType: "EQUAL" | "CUSTOM"
+  splits?: CategorySplit[]
 }
 
 interface CategoriesListProps {
@@ -56,77 +63,74 @@ export function CategoriesList({ categories, onCategoryChanged }: CategoriesList
     }
   }
 
-  const getSplitDisplay = (category: Category) => {
-    if (category.splitType === "DEFAULT") {
-      return "Padrão (2/3 + 1/3)"
+  const formatSplitInfo = (category: Category) => {
+    if (category.splitType === "EQUAL") {
+      return "Divisão igual entre todos"
     }
     
-    return `${category.user1user2?.toFixed(1)}% + ${category.user3?.toFixed(1)}%`
+    if (category.splits && category.splits.length > 0) {
+      return category.splits
+        .map(split => `${split.user.name}: ${split.percentage.toFixed(1)}%`)
+        .join(" • ")
+    }
+    
+    return "Configuração personalizada"
   }
 
   if (categories.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        Nenhuma categoria encontrada.
+        Nenhuma categoria encontrada. Crie sua primeira categoria!
       </div>
     )
   }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Divisão</TableHead>
-            <TableHead className="w-[100px]">Ações</TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nome</TableHead>
+          <TableHead>Tipo de Divisão</TableHead>
+          <TableHead>Divisão</TableHead>
+          <TableHead className="w-24">Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {categories.map((category) => (
+          <TableRow key={category.id}>
+            <TableCell className="font-medium">{category.name}</TableCell>
+            <TableCell>
+              <Badge variant={category.splitType === "EQUAL" ? "default" : "secondary"}>
+                {category.splitType === "EQUAL" ? "Igual" : "Personalizada"}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {formatSplitInfo(category)}
+            </TableCell>
+            <TableCell>
+              <div className="flex gap-1">
+                <CategoryForm
+                  category={category}
+                  onCategoryChanged={onCategoryChanged}
+                  trigger={
+                    <Button variant="ghost" size="sm">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  }
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDelete(category.id, category.name)}
+                  disabled={deletingId === category.id}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {categories.map((category) => (
-            <TableRow key={category.id}>
-              <TableCell className="font-medium">
-                {category.name}
-              </TableCell>
-              <TableCell>
-                <Badge variant={category.splitType === "DEFAULT" ? "secondary" : "outline"}>
-                  {category.splitType === "DEFAULT" ? "Padrão" : "Personalizada"}
-                </Badge>
-              </TableCell>
-              <TableCell className="font-mono text-sm">
-                {getSplitDisplay(category)}
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-1">
-                  <CategoryForm
-                    category={category}
-                    onCategoryChanged={onCategoryChanged}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    }
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(category.id, category.name)}
-                    disabled={deletingId === category.id}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+        ))}
+      </TableBody>
+    </Table>
   )
 }

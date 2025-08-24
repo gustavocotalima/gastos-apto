@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(
   request: Request,
-  { params }: { params: { monthYear: string } }
+  { params }: { params: Promise<{ monthYear: string }> }
 ) {
   try {
     const session = await auth()
@@ -12,24 +12,46 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { monthYear } = params
+    const { monthYear } = await params
+
+    // Get all active users
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, email: true },
+    })
 
     // Get all expenses for the month
     const expenses = await prisma.expense.findMany({
       where: { monthYear },
       include: {
-        category: true,
+        category: {
+          include: {
+            splits: {
+              include: {
+                user: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
         paidBy: { select: { id: true, name: true } },
+        customSplits: {
+          include: {
+            user: { select: { id: true, name: true } },
+          },
+        },
       },
     })
 
     // Get air conditioning data
     let airConditioningData = null
     try {
-      airConditioningData = await prisma.airConditioningUsage.findFirst({
+      airConditioningData = await prisma.airConditioningUsage.findMany({
         where: { monthYear },
+        include: {
+          user: { select: { id: true, name: true } },
+        },
       })
-    } catch (error) {
+    } catch {
       // Table might not exist yet
     }
 
@@ -42,50 +64,61 @@ export async function GET(
           settlements: true,
         },
       })
-    } catch (error) {
+    } catch {
       // Table might not exist yet
     }
 
-    // Calculate totals and splits
-    const calculateSplit = () => {
-      let user1Total = 0
-      let user2Total = 0 
-      let user3Total = 0
+    // Calculate totals and splits per user
+    const calculateSplits = () => {
+      const userTotals: Record<string, number> = {}
+      
+      // Initialize all users with 0
+      users.forEach(user => {
+        userTotals[user.id] = 0
+      })
 
       expenses.forEach((expense) => {
-        const { category, amount } = expense
+        const { category, amount, customSplits } = expense
         
-        if (category.splitType === 'DEFAULT') {
-          // Default: 2/3 for user1+user2, 1/3 for user3
-          const user1user2Share = amount * (2/3)
-          const user3Share = amount * (1/3)
-          
-          user1Total += user1user2Share / 2
-          user2Total += user1user2Share / 2
-          user3Total += user3Share
-        } else if (category.splitType === 'CUSTOM') {
-          // Custom percentages
-          const user1user2Percent = (category.user1user2 || 0) / 100
-          const user3Percent = (category.user3 || 0) / 100
-          
-          const user1user2Share = amount * user1user2Percent
-          const user3Share = amount * user3Percent
-          
-          user1Total += user1user2Share / 2
-          user2Total += user1user2Share / 2
-          user3Total += user3Share
+        // Check if expense has custom splits
+        if (customSplits && customSplits.length > 0) {
+          customSplits.forEach(split => {
+            userTotals[split.userId] = (userTotals[split.userId] || 0) + split.amount
+          })
+        } else if (category.splitType === 'EQUAL') {
+          // Equal split among all active users
+          const activeUserCount = users.length
+          const equalShare = amount / activeUserCount
+          users.forEach(user => {
+            userTotals[user.id] += equalShare
+          })
+        } else if (category.splitType === 'CUSTOM' && category.splits.length > 0) {
+          // Custom percentages from category
+          category.splits.forEach(split => {
+            const userShare = amount * (split.percentage / 100)
+            userTotals[split.userId] = (userTotals[split.userId] || 0) + userShare
+          })
+        } else {
+          // Fallback to equal split if no configuration
+          const activeUserCount = users.length
+          const equalShare = amount / activeUserCount
+          users.forEach(user => {
+            userTotals[user.id] += equalShare
+          })
         }
       })
 
-      // Add air conditioning cost to user1
-      if (airConditioningData) {
-        user1Total += airConditioningData.calculatedAmount
+      // Add air conditioning costs if applicable
+      if (airConditioningData && airConditioningData.length > 0) {
+        airConditioningData.forEach(acUsage => {
+          userTotals[acUsage.userId] = (userTotals[acUsage.userId] || 0) + acUsage.calculatedAmount
+        })
       }
 
-      return { user1Total, user2Total, user3Total }
+      return userTotals
     }
 
-    const { user1Total, user2Total, user3Total } = calculateSplit()
+    const userTotals = calculateSplits()
 
     // Calculate who paid what
     const paidByUser = expenses.reduce((acc, expense) => {
@@ -95,50 +128,35 @@ export async function GET(
     }, {} as Record<string, number>)
 
     // Calculate balances (what each person owes or is owed)
-    const calculateBalances = async () => {
-      const users = await prisma.user.findMany({
-        select: { id: true, name: true },
-      })
+    const balances = users.map(user => {
+      const paid = paidByUser[user.id] || 0
+      const owes = userTotals[user.id] || 0
 
-      const balances = users.map(user => {
-        const paid = paidByUser[user.id] || 0
-        let owes = 0
+      return {
+        userId: user.id,
+        userName: user.name,
+        paid,
+        owes,
+        balance: paid - owes, // positive = is owed money, negative = owes money
+      }
+    })
 
-        if (user.name === 'user1') {
-          owes = user1Total
-        } else if (user.name === 'user2') {
-          owes = user2Total
-        } else if (user.name === 'user3') {
-          owes = user3Total
-        }
-
-        return {
-          userId: user.id,
-          userName: user.name,
-          paid,
-          owes,
-          balance: paid - owes, // positive = is owed money, negative = owes money
-        }
-      })
-
-      return balances
-    }
-
-    const balances = await calculateBalances()
+    // Calculate total splits for summary
+    const splits = users.reduce((acc, user) => {
+      acc[user.name] = userTotals[user.id] || 0
+      return acc
+    }, {} as Record<string, number>)
 
     const summary = {
       monthYear,
       totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
       expenseCount: expenses.length,
-      airConditioningAmount: airConditioningData?.calculatedAmount || 0,
-      splits: {
-        user1: user1Total,
-        user2: user2Total,
-        user3: user3Total,
-      },
+      airConditioningAmount: airConditioningData?.reduce((sum, ac) => sum + ac.calculatedAmount, 0) || 0,
+      splits,
       balances,
       settlement,
       status: settlement?.status || 'OPEN',
+      activeUsers: users,
     }
 
     return NextResponse.json(summary)

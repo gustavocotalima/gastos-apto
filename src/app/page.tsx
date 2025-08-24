@@ -24,13 +24,17 @@ async function getExpenses(monthYear: string) {
     },
     orderBy: { date: "desc" },
   })
-  return expenses
+  // Transform Date objects to strings for client components
+  return expenses.map(expense => ({
+    ...expense,
+    date: expense.date.toISOString().split('T')[0]
+  }))
 }
 
 export default async function Home({
   searchParams,
 }: {
-  searchParams: SearchParams
+  searchParams: Promise<SearchParams>
 }) {
   const session = await auth()
   
@@ -38,7 +42,8 @@ export default async function Home({
     redirect("/login")
   }
 
-  const selectedMonth = searchParams.month || new Date().toISOString().slice(0, 7)
+  const params = await searchParams
+  const selectedMonth = params.month || new Date().toISOString().slice(0, 7)
   const expenses = await getExpenses(selectedMonth)
 
   const getMonthDisplay = (monthYear: string) => {

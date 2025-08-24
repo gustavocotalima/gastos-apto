@@ -1,21 +1,33 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Edit } from "lucide-react"
+import { Plus } from "lucide-react"
 import { toast } from "sonner"
+
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+interface CategorySplit {
+  userId: string
+  percentage: number
+  user: {
+    name: string
+  }
+}
 
 interface Category {
   id: string
   name: string
-  splitType: "DEFAULT" | "CUSTOM"
-  user1user2?: number
-  user3?: number
+  splitType: "EQUAL" | "CUSTOM"
+  splits?: CategorySplit[]
 }
 
 interface CategoryFormProps {
@@ -27,36 +39,83 @@ interface CategoryFormProps {
 export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryFormProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
   
   // Form data
   const [name, setName] = useState("")
-  const [splitType, setSplitType] = useState<"DEFAULT" | "CUSTOM">("DEFAULT")
-  const [user1user2, setuser1user2] = useState<number>(66.67)
-  const [user3, setuser3] = useState<number>(33.33)
+  const [splitType, setSplitType] = useState<"EQUAL" | "CUSTOM">("EQUAL")
+  const [customSplits, setCustomSplits] = useState<Record<string, number>>({})
 
   const isEdit = !!category
+
+  useEffect(() => {
+    if (open) {
+      fetchUsers()
+    }
+  }, [open, fetchUsers])
 
   useEffect(() => {
     if (category) {
       setName(category.name)
       setSplitType(category.splitType)
-      setuser1user2(category.user1user2 || 66.67)
-      setuser3(category.user3 || 33.33)
+      
+      // Convert category splits to custom splits format
+      const splits: Record<string, number> = {}
+      if (category.splits) {
+        category.splits.forEach(split => {
+          splits[split.userId] = split.percentage
+        })
+      }
+      setCustomSplits(splits)
     } else {
       resetForm()
     }
   }, [category, open])
 
+  const fetchUsers = useCallback(async () => {
+    try {
+      const response = await fetch('/api/users')
+      if (response.ok) {
+        const data = await response.json()
+        setUsers(data)
+        
+        // Initialize custom splits for new categories
+        if (!category) {
+          const equalPercentage = 100 / data.length
+          const splits: Record<string, number> = {}
+          data.forEach((user: User) => {
+            splits[user.id] = equalPercentage
+          })
+          setCustomSplits(splits)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error)
+    }
+  }, [category])  // Add category to deps since it's used inside
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+
+    // Validate custom splits total to 100%
+    if (splitType === "CUSTOM") {
+      const total = Object.values(customSplits).reduce((sum, val) => sum + val, 0)
+      if (Math.abs(total - 100) > 0.01) {
+        toast.error("Os percentuais devem somar 100%")
+        setIsLoading(false)
+        return
+      }
+    }
 
     const data = {
       name,
       splitType,
       ...(splitType === "CUSTOM" && {
-        user1user2,
-        user3,
+        splits: Object.entries(customSplits).map(([userId, percentage]) => ({
+          userId,
+          percentage
+        }))
       }),
     }
 
@@ -90,20 +149,18 @@ export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryF
 
   const resetForm = () => {
     setName("")
-    setSplitType("DEFAULT")
-    setuser1user2(66.67)
-    setuser3(33.33)
+    setSplitType("EQUAL")
+    setCustomSplits({})
   }
 
-  const handlePercentageChange = (field: "user1user2" | "user3", value: number) => {
-    if (field === "user1user2") {
-      setuser1user2(value)
-      setuser3(100 - value)
-    } else {
-      setuser3(value)
-      setuser1user2(100 - value)
-    }
+  const updateSplit = (userId: string, percentage: number) => {
+    setCustomSplits(prev => ({
+      ...prev,
+      [userId]: percentage
+    }))
   }
+
+  const totalPercentage = Object.values(customSplits).reduce((sum, val) => sum + val, 0)
 
   const defaultTrigger = (
     <Button className="gap-2">
@@ -117,89 +174,86 @@ export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryF
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? "Editar Categoria" : "Nova Categoria"}
           </DialogTitle>
           <DialogDescription>
             {isEdit 
-              ? "Modifique os dados da categoria."
-              : "Crie uma nova categoria para organizar os gastos."
+              ? "Edite o nome e a forma de divisão da categoria"
+              : "Crie uma nova categoria para organizar seus gastos"
             }
           </DialogDescription>
         </DialogHeader>
+        
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="name">Nome da Categoria</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ex: Supermercado, Conta de Luz..."
+              placeholder="Ex: Aluguel, Internet, Supermercado..."
               required
             />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="custom-split"
-                checked={splitType === "CUSTOM"}
-                onCheckedChange={(checked) => 
-                  setSplitType(checked ? "CUSTOM" : "DEFAULT")
-                }
-              />
-              <Label htmlFor="custom-split">Divisão personalizada</Label>
-            </div>
+          <div className="space-y-3">
+            <Label>Tipo de Divisão</Label>
+            
+            <Select value={splitType} onValueChange={(value: "EQUAL" | "CUSTOM") => setSplitType(value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="EQUAL">Divisão Igual</SelectItem>
+                <SelectItem value="CUSTOM">Divisão Personalizada</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {splitType === "DEFAULT" && (
-              <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                <strong>Divisão padrão:</strong>
-                <br />
-                • user1 + user2: 66.67% (33.33% cada)
-                <br />
-                • user3: 33.33%
+            {splitType === "EQUAL" && (
+              <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                <strong>Divisão igual:</strong> O valor será dividido igualmente entre todos os usuários ativos
+                {users.length > 0 && (
+                  <div className="mt-2">
+                    {users.map(user => (
+                      <div key={user.id}>• {user.name}: {(100 / users.length).toFixed(1)}%</div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             {splitType === "CUSTOM" && (
               <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="user1-user2">
-                    user1 + user2 (%)
-                  </Label>
-                  <Input
-                    id="user1-user2"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={user1user2}
-                    onChange={(e) => 
-                      handlePercentageChange("user1user2", parseFloat(e.target.value) || 0)
-                    }
-                  />
+                <div className="text-sm text-muted-foreground">
+                  Defina o percentual que cada usuário deve pagar:
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="user3">user3 (%)</Label>
-                  <Input
-                    id="user3"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
-                    value={user3}
-                    onChange={(e) => 
-                      handlePercentageChange("user3", parseFloat(e.target.value) || 0)
-                    }
-                  />
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Total: {(user1user2 + user3).toFixed(2)}%
-                  {Math.abs(user1user2 + user3 - 100) > 0.01 && (
+                
+                {users.map(user => (
+                  <div key={user.id} className="flex items-center gap-3">
+                    <Label className="min-w-0 flex-1">{user.name}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        value={customSplits[user.id] || 0}
+                        onChange={(e) => updateSplit(user.id, parseFloat(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                  </div>
+                ))}
+                
+                <div className="text-sm">
+                  Total: {totalPercentage.toFixed(1)}%
+                  {Math.abs(totalPercentage - 100) > 0.01 && (
                     <span className="text-red-500 ml-2">
-                      (Deve somar 100%)
+                      (deve somar 100%)
                     </span>
                   )}
                 </div>
@@ -207,17 +261,12 @@ export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryF
             )}
           </div>
 
-          <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isLoading}
-            >
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Salvando..." : "Salvar"}
+              {isLoading ? "Salvando..." : isEdit ? "Atualizar" : "Criar"}
             </Button>
           </div>
         </form>

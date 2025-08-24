@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { getPaginationParams, createPaginatedResponse, getPrismaSkipTake } from "@/lib/pagination"
+import { handleApiError, AuthenticationError } from "@/lib/errors"
 
 const expenseSchema = z.object({
   date: z.string().transform((str) => new Date(str)),
@@ -15,25 +17,32 @@ export async function GET(request: Request) {
   try {
     const session = await auth()
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const { searchParams } = new URL(request.url)
     const monthYear = searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
+    const paginationParams = getPaginationParams(searchParams)
+    const { skip, take } = getPrismaSkipTake(paginationParams)
 
-    const expenses = await prisma.expense.findMany({
-      where: { monthYear },
-      include: {
-        category: true,
-        paidBy: { select: { id: true, name: true } },
-      },
-      orderBy: { date: "desc" },
-    })
+    const [expenses, total] = await Promise.all([
+      prisma.expense.findMany({
+        where: { monthYear },
+        include: {
+          category: true,
+          paidBy: { select: { id: true, name: true } },
+        },
+        orderBy: { date: "desc" },
+        skip,
+        take,
+      }),
+      prisma.expense.count({ where: { monthYear } })
+    ])
 
-    return NextResponse.json(expenses)
+    const response = createPaginatedResponse(expenses, total, paginationParams)
+    return NextResponse.json(response)
   } catch (error) {
-    console.error("Error fetching expenses:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
@@ -41,7 +50,7 @@ export async function POST(request: Request) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const body = await request.json()
@@ -62,10 +71,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(expense)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 })
-    }
-    console.error("Error creating expense:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }

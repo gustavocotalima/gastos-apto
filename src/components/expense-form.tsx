@@ -77,7 +77,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          date,
+          date: date + 'T12:00:00.000Z',
           amount: parseFloat(amount),
           description,
           categoryId,
@@ -187,8 +187,7 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva o gasto..."
-              required
+              placeholder="Descreva o gasto (opcional)..."
             />
           </div>
 

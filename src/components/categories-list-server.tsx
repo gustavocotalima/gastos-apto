@@ -10,12 +10,19 @@ import { Badge } from "@/components/ui/badge"
 import { CategoryEditButton } from "./category-edit-button"
 import { CategoryDeleteButton } from "./category-delete-button"
 
+interface CategorySplit {
+  userId: string
+  percentage: number
+  user: {
+    name: string
+  }
+}
+
 interface Category {
   id: string
   name: string
-  splitType: "DEFAULT" | "CUSTOM"
-  user1user2?: number
-  user3?: number
+  splitType: "EQUAL" | "CUSTOM"
+  splits?: CategorySplit[]
 }
 
 interface CategoriesListServerProps {
@@ -24,11 +31,17 @@ interface CategoriesListServerProps {
 
 export function CategoriesListServer({ categories }: CategoriesListServerProps) {
   const getSplitDisplay = (category: Category) => {
-    if (category.splitType === "DEFAULT") {
-      return "Padrão (2/3 + 1/3)"
+    if (category.splitType === "EQUAL") {
+      return "Divisão igual entre todos"
     }
     
-    return `${category.user1user2?.toFixed(1)}% + ${category.user3?.toFixed(1)}%`
+    if (category.splits && category.splits.length > 0) {
+      return category.splits
+        .map(split => `${split.user.name}: ${split.percentage.toFixed(1)}%`)
+        .join(" • ")
+    }
+    
+    return "Configuração personalizada"
   }
 
   if (categories.length === 0) {
@@ -40,40 +53,36 @@ export function CategoriesListServer({ categories }: CategoriesListServerProps) 
   }
 
   return (
-    <div className="border rounded-lg">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Divisão</TableHead>
-            <TableHead className="w-[100px]">Ações</TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Nome</TableHead>
+          <TableHead>Divisão</TableHead>
+          <TableHead>Detalhes</TableHead>
+          <TableHead className="w-24">Ações</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {categories.map((category) => (
+          <TableRow key={category.id}>
+            <TableCell className="font-medium">{category.name}</TableCell>
+            <TableCell>
+              <Badge variant={category.splitType === "EQUAL" ? "default" : "secondary"}>
+                {category.splitType === "EQUAL" ? "Igual" : "Personalizada"}
+              </Badge>
+            </TableCell>
+            <TableCell className="text-sm text-muted-foreground">
+              {getSplitDisplay(category)}
+            </TableCell>
+            <TableCell>
+              <div className="flex gap-1">
+                <CategoryEditButton category={category} />
+                <CategoryDeleteButton categoryId={category.id} categoryName={category.name} />
+              </div>
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {categories.map((category) => (
-            <TableRow key={category.id}>
-              <TableCell className="font-medium">
-                {category.name}
-              </TableCell>
-              <TableCell>
-                <Badge variant={category.splitType === "DEFAULT" ? "secondary" : "outline"}>
-                  {category.splitType === "DEFAULT" ? "Padrão" : "Personalizada"}
-                </Badge>
-              </TableCell>
-              <TableCell className="font-mono text-sm">
-                {getSplitDisplay(category)}
-              </TableCell>
-              <TableCell>
-                <div className="flex gap-1">
-                  <CategoryEditButton category={category} />
-                  <CategoryDeleteButton categoryId={category.id} categoryName={category.name} />
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+        ))}
+      </TableBody>
+    </Table>
   )
 }

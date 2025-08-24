@@ -1,19 +1,22 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
+import { env } from "@/lib/env"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { z } from "zod"
 
 const loginSchema = z.object({
-  email: z.string().min(1),
-  password: z.string().min(6),
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
 })
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  secret: env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   providers: [
     Credentials({
@@ -28,15 +31,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null
         }
 
-        const { email: username, password } = validatedFields.data
+        const { email, password } = validatedFields.data
 
-        const user = await prisma.user.findFirst({
+        const user = await prisma.user.findUnique({
           where: { 
-            name: username 
+            email: email 
           },
         })
 
-        if (!user || !user.password) {
+        if (!user || !user.password || !user.isActive) {
           return null
         }
 
@@ -69,6 +72,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   pages: {
     signIn: "/login",
   },
-  debug: process.env.NODE_ENV === "development",
+  debug: env.NODE_ENV === "development",
   trustHost: true,
 })

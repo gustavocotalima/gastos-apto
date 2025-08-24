@@ -3,11 +3,13 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
-const categorySchema = z.object({
-  name: z.string().min(1),
-  splitType: z.enum(["DEFAULT", "CUSTOM"]),
-  user1user2: z.number().min(0).max(100).optional(),
-  user3: z.number().min(0).max(100).optional(),
+const createCategorySchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório"),
+  splitType: z.enum(["EQUAL", "CUSTOM"]),
+  splits: z.array(z.object({
+    userId: z.string(),
+    percentage: z.number().min(0).max(100)
+  })).optional()
 })
 
 export async function GET() {
@@ -18,6 +20,15 @@ export async function GET() {
     }
 
     const categories = await prisma.category.findMany({
+      include: {
+        splits: {
+          include: {
+            user: {
+              select: { id: true, name: true }
+            }
+          }
+        }
+      },
       orderBy: { name: "asc" },
     })
 
@@ -36,30 +47,53 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const validatedData = categorySchema.parse(body)
+    const validatedData = createCategorySchema.parse(body)
 
-    // Validate that custom split percentages add up to 100
-    if (validatedData.splitType === "CUSTOM") {
-      const user1user2 = validatedData.user1user2 || 0
-      const user3 = validatedData.user3 || 0
-      
-      if (Math.abs(user1user2 + user3 - 100) > 0.01) {
+    // Validate custom splits if provided
+    if (validatedData.splitType === "CUSTOM" && validatedData.splits) {
+      const total = validatedData.splits.reduce((sum, split) => sum + split.percentage, 0)
+      if (Math.abs(total - 100) > 0.01) {
         return NextResponse.json(
-          { error: "Percentuais devem somar 100%" },
+          { error: "Os percentuais devem somar 100%" },
           { status: 400 }
         )
       }
     }
 
-    const category = await prisma.category.create({
-      data: validatedData,
+    // Create category with splits in a transaction
+    const category = await prisma.$transaction(async (tx) => {
+      const newCategory = await tx.category.create({
+        data: {
+          name: validatedData.name,
+          splitType: validatedData.splitType,
+        },
+      })
+
+      // Create splits if custom type
+      if (validatedData.splitType === "CUSTOM" && validatedData.splits) {
+        await tx.categorySplit.createMany({
+          data: validatedData.splits.map(split => ({
+            categoryId: newCategory.id,
+            userId: split.userId,
+            percentage: split.percentage
+          }))
+        })
+      }
+
+      return newCategory
     })
 
-    return NextResponse.json(category)
+    return NextResponse.json(category, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
+      const firstError = error.issues?.[0]
+      const message = firstError?.message || "Dados inválidos"
+      return NextResponse.json(
+        { error: message },
+        { status: 400 }
+      )
     }
+
     console.error("Error creating category:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }

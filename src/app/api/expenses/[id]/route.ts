@@ -12,8 +12,9 @@ const expenseUpdateSchema = z.object({
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await auth()
     if (!session) {
@@ -23,13 +24,19 @@ export async function PUT(
     const body = await request.json()
     const validatedData = expenseUpdateSchema.parse(body)
 
-    const updatedData: any = { ...validatedData }
+    const updatedData: {
+      date?: Date
+      amount?: number
+      description?: string
+      categoryId?: string
+      monthYear?: string
+    } = { ...validatedData }
     if (validatedData.date) {
       updatedData.monthYear = validatedData.date.toISOString().slice(0, 7)
     }
 
     const expense = await prisma.expense.update({
-      where: { id: params.id },
+      where: { id },
       data: updatedData,
       include: {
         category: true,
@@ -40,7 +47,7 @@ export async function PUT(
     return NextResponse.json(expense)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
     }
     console.error("Error updating expense:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
@@ -49,8 +56,9 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const session = await auth()
     if (!session) {
@@ -58,7 +66,7 @@ export async function DELETE(
     }
 
     await prisma.expense.delete({
-      where: { id: params.id },
+      where: { id },
     })
 
     return NextResponse.json({ success: true })

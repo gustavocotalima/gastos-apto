@@ -72,13 +72,13 @@ export default async function CategoriesPage() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
-              <strong>Divisão Padrão:</strong> user1 e user2 dividem 2/3 do valor (33.33% cada), user3 paga 1/3 (33.33%)
+              <strong>Divisão Igual:</strong> O valor é dividido igualmente entre todos os usuários ativos
             </div>
             <div>
-              <strong>Divisão Personalizada:</strong> Você define os percentuais exatos para user1+user2 e user3
+              <strong>Divisão Personalizada:</strong> Você define os percentuais exatos para cada usuário
             </div>
             <div className="text-muted-foreground">
-              💡 Dica: Use divisão personalizada para casos especiais como "Garagem user3" ou "Desconto Total"
+              💡 Dica: Use divisão personalizada para casos especiais como gastos que não devem ser divididos igualmente
             </div>
           </CardContent>
         </Card>

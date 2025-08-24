@@ -5,12 +5,19 @@ import { Edit } from "lucide-react"
 import { CategoryForm } from "./category-form"
 import { useRouter } from "next/navigation"
 
+interface CategorySplit {
+  userId: string
+  percentage: number
+  user: {
+    name: string
+  }
+}
+
 interface Category {
   id: string
   name: string
-  splitType: "DEFAULT" | "CUSTOM"
-  user1user2?: number
-  user3?: number
+  splitType: "EQUAL" | "CUSTOM"
+  splits?: CategorySplit[]
 }
 
 interface CategoryEditButtonProps {
