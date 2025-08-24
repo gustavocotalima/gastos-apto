@@ -1,0 +1,34 @@
+# Nixpacks configuration for gastos-apto deployment
+providers = []
+
+[variables]
+  NODE_ENV = "production"
+  NPM_CONFIG_PRODUCTION = "false"
+  CI = "true"
+
+[phases.setup]
+  nixPkgs = ["nodejs_18", "pnpm-9_x", "openssl"]
+  nixLibs = ["gcc-unwrapped", "libuuid", "libGL"]
+  aptPkgs = ["curl", "wget"]
+
+[phases.install]
+  dependsOn = ["setup"]
+  # Add debugging to check files before install
+  cmds = [
+    "pwd",
+    "ls -la",
+    "test -f package.json && echo 'package.json found' || echo 'package.json NOT found'",
+    "test -f pnpm-lock.yaml && echo 'pnpm-lock.yaml found' || echo 'pnpm-lock.yaml NOT found'",
+    "cat package.json | head -10",
+    "pnpm install --frozen-lockfile"
+  ]
+
+[phases.build]
+  dependsOn = ["install"]
+  cmds = [
+    "pnpm prisma generate",
+    "pnpm build"
+  ]
+
+[start]
+  cmd = "pnpm prisma migrate deploy && pnpm start"
