@@ -1,5 +1,5 @@
 # Nixpacks configuration for gastos-apto deployment
-providers = []
+providers = ["node"]
 
 [variables]
   NODE_ENV = "production"
@@ -19,8 +19,8 @@ providers = []
     "ls -la",
     "test -f package.json && echo 'package.json found' || echo 'package.json NOT found'",
     "test -f pnpm-lock.yaml && echo 'pnpm-lock.yaml found' || echo 'pnpm-lock.yaml NOT found'",
-    "cat package.json | head -10",
-    "pnpm install --frozen-lockfile"
+    "head -20 package.json || echo 'Could not read package.json'",
+    "pnpm install"
   ]
 
 [phases.build]
