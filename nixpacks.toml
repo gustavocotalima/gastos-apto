@@ -1,34 +1,15 @@
-# Nixpacks configuration for gastos-apto deployment
-providers = ["node"]
-
-[variables]
-  NODE_ENV = "production"
-  NPM_CONFIG_PRODUCTION = "false"
-  CI = "true"
-
-[phases.setup]
-  nixPkgs = ["nodejs_18", "pnpm-9_x", "openssl"]
-  nixLibs = ["gcc-unwrapped", "libuuid", "libGL"]
-  aptPkgs = ["curl", "wget"]
-
 [phases.install]
-  dependsOn = ["setup"]
-  # Add debugging to check files before install
-  cmds = [
-    "pwd",
-    "ls -la",
-    "test -f package.json && echo 'package.json found' || echo 'package.json NOT found'",
-    "test -f pnpm-lock.yaml && echo 'pnpm-lock.yaml found' || echo 'pnpm-lock.yaml NOT found'",
-    "head -20 package.json || echo 'Could not read package.json'",
-    "pnpm install"
-  ]
-
-[phases.build]
-  dependsOn = ["install"]
-  cmds = [
-    "pnpm prisma generate",
-    "pnpm build"
-  ]
-
-[start]
-  cmd = "pnpm prisma migrate deploy && pnpm start"
+cmds = [
+  "echo 'DEBUG: Current working directory:'",
+  "pwd",
+  "echo 'DEBUG: Listing all files:'", 
+  "ls -la",
+  "echo 'DEBUG: Checking package.json:'",
+  "test -f package.json && echo 'package.json EXISTS' || echo 'package.json NOT FOUND'",
+  "echo 'DEBUG: Checking pnpm-lock.yaml:'",
+  "test -f pnpm-lock.yaml && echo 'pnpm-lock.yaml EXISTS' || echo 'pnpm-lock.yaml NOT FOUND'",
+  "echo 'DEBUG: package.json contents (first 10 lines):'",
+  "head -10 package.json || echo 'FAILED to read package.json'",
+  "echo 'DEBUG: Running pnpm install:'",
+  "pnpm install"
+]
