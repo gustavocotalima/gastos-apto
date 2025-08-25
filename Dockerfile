@@ -28,8 +28,5 @@ RUN pnpm prisma generate && pnpm build
 # Expose port
 EXPOSE 3000
 
-# Create startup script that runs migrations and starts the app
-RUN echo '#!/bin/sh\npnpm prisma migrate deploy\npnpm start' > start.sh && chmod +x start.sh
-
-# Start command
-CMD ["./start.sh"]
+# Start command - run migrations then start app
+CMD ["sh", "-c", "pnpm prisma migrate deploy && pnpm start"]
