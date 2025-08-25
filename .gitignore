@@ -47,6 +47,5 @@ project-plan.md
 # database
 *.db
 *.db-journal
-prisma/migrations
 
 /src/generated/prisma
