@@ -1,6 +1,7 @@
 "use client"
 
 import { SessionProvider } from "next-auth/react"
+import { ThemeProvider } from "@/components/theme-provider"
 import { PWAInstallPrompt } from "./pwa-install-prompt"
 import { OfflineIndicator } from "./offline-indicator"
 
@@ -11,9 +12,11 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <SessionProvider>
-      {children}
-      <PWAInstallPrompt />
-      <OfflineIndicator />
+      <ThemeProvider>
+        {children}
+        <PWAInstallPrompt />
+        <OfflineIndicator />
+      </ThemeProvider>
     </SessionProvider>
   )
 }
