@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus } from "lucide-react"
+import { Plus, Edit } from "lucide-react"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 interface User {
   id: string
@@ -32,14 +33,15 @@ interface Category {
 
 interface CategoryFormProps {
   category?: Category
-  onCategoryChanged: () => void
   trigger?: React.ReactNode
+  onSuccess?: () => void
 }
 
-export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryFormProps) {
+export function CategoryForm({ category, trigger, onSuccess }: CategoryFormProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
+  const router = useRouter()
   
   // Form data
   const [name, setName] = useState("")
@@ -52,47 +54,50 @@ export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryF
     if (open) {
       fetchUsers()
     }
-  }, [open, fetchUsers])
+  }, [open])
 
   useEffect(() => {
-    if (category) {
+    if (category && open) {
       setName(category.name)
       setSplitType(category.splitType)
-      
-      // Convert category splits to custom splits format
-      const splits: Record<string, number> = {}
-      if (category.splits) {
-        category.splits.forEach(split => {
-          splits[split.userId] = split.percentage
-        })
-      }
-      setCustomSplits(splits)
-    } else {
+    } else if (!category && open) {
       resetForm()
     }
   }, [category, open])
 
-  const fetchUsers = useCallback(async () => {
+  // Separate effect to handle splits after users are loaded
+  useEffect(() => {
+    if (users.length > 0) {
+      if (category && category.splits && category.splits.length > 0) {
+        // Load existing splits for edit mode
+        const splits: Record<string, number> = {}
+        category.splits.forEach(split => {
+          splits[split.userId] = split.percentage
+        })
+        setCustomSplits(splits)
+      } else if (!category) {
+        // Initialize equal splits for new categories
+        const equalPercentage = 100 / users.length
+        const splits: Record<string, number> = {}
+        users.forEach((user: User) => {
+          splits[user.id] = equalPercentage
+        })
+        setCustomSplits(splits)
+      }
+    }
+  }, [users, category])
+
+  const fetchUsers = async () => {
     try {
       const response = await fetch('/api/users')
       if (response.ok) {
         const data = await response.json()
         setUsers(data)
-        
-        // Initialize custom splits for new categories
-        if (!category) {
-          const equalPercentage = 100 / data.length
-          const splits: Record<string, number> = {}
-          data.forEach((user: User) => {
-            splits[user.id] = equalPercentage
-          })
-          setCustomSplits(splits)
-        }
       }
     } catch (error) {
       console.error('Error fetching users:', error)
     }
-  }, [category])  // Add category to deps since it's used inside
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -135,7 +140,8 @@ export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryF
         toast.success(isEdit ? "Categoria atualizada!" : "Categoria criada!")
         setOpen(false)
         if (!isEdit) resetForm()
-        onCategoryChanged()
+        router.refresh()
+        onSuccess?.()
       } else {
         const error = await response.json()
         toast.error(error.error || "Erro ao salvar categoria")
@@ -169,10 +175,17 @@ export function CategoryForm({ category, onCategoryChanged, trigger }: CategoryF
     </Button>
   )
 
+  const editTrigger = (
+    <Button variant="ghost" size="sm" className="gap-2">
+      <Edit className="h-4 w-4" />
+      Editar
+    </Button>
+  )
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || defaultTrigger}
+        {trigger || (isEdit ? editTrigger : defaultTrigger)}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

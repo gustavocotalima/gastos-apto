@@ -1,14 +1,6 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { CategoryEditButton } from "./category-edit-button"
-import { CategoryDeleteButton } from "./category-delete-button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CategoryForm } from "@/components/category-form"
+import { CategoryDeleteButton } from "@/components/category-delete-button"
 
 interface CategorySplit {
   userId: string
@@ -44,45 +36,51 @@ export function CategoriesListServer({ categories }: CategoriesListServerProps) 
     return "Configuração personalizada"
   }
 
-  if (categories.length === 0) {
-    return (
-      <div className="text-center py-8 text-muted-foreground">
-        Nenhuma categoria encontrada.
-      </div>
-    )
-  }
-
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Nome</TableHead>
-          <TableHead>Divisão</TableHead>
-          <TableHead>Detalhes</TableHead>
-          <TableHead className="w-24">Ações</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {categories.map((category) => (
-          <TableRow key={category.id}>
-            <TableCell className="font-medium">{category.name}</TableCell>
-            <TableCell>
-              <Badge variant={category.splitType === "EQUAL" ? "default" : "secondary"}>
-                {category.splitType === "EQUAL" ? "Igual" : "Personalizada"}
-              </Badge>
-            </TableCell>
-            <TableCell className="text-sm text-muted-foreground">
-              {getSplitDisplay(category)}
-            </TableCell>
-            <TableCell>
-              <div className="flex gap-1">
-                <CategoryEditButton category={category} />
-                <CategoryDeleteButton categoryId={category.id} categoryName={category.name} />
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Gerenciar Categorias</CardTitle>
+            <CardDescription>
+              Configure as categorias e suas divisões
+            </CardDescription>
+          </div>
+          <CategoryForm />
+        </div>
+      </CardHeader>
+      <CardContent>
+        {categories.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Nenhuma categoria encontrada.
+            <div className="mt-4">
+              <CategoryForm />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {categories.map(category => (
+              <div key={category.id} className="p-4 border rounded-lg">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">{category.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {getSplitDisplay(category)}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <CategoryForm category={category} />
+                    <CategoryDeleteButton 
+                      categoryId={category.id} 
+                      categoryName={category.name} 
+                    />
+                  </div>
+                </div>
               </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

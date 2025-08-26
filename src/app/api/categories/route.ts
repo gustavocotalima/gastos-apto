@@ -1,24 +1,8 @@
 import { NextResponse } from "next/server"
-import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { z } from "zod"
-
-const createCategorySchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
-  splitType: z.enum(["EQUAL", "CUSTOM"]),
-  splits: z.array(z.object({
-    userId: z.string(),
-    percentage: z.number().min(0).max(100)
-  })).optional()
-})
 
 export async function GET() {
   try {
-    const session = await auth()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
     const categories = await prisma.category.findMany({
       include: {
         splits: {
@@ -41,17 +25,16 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const body = await request.json()
+    
+    // Basic validation without zod
+    if (!body.name || typeof body.name !== 'string') {
+      return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 })
     }
 
-    const body = await request.json()
-    const validatedData = createCategorySchema.parse(body)
-
     // Validate custom splits if provided
-    if (validatedData.splitType === "CUSTOM" && validatedData.splits) {
-      const total = validatedData.splits.reduce((sum, split) => sum + split.percentage, 0)
+    if (body.splitType === "CUSTOM" && body.splits) {
+      const total = body.splits.reduce((sum: number, split: any) => sum + split.percentage, 0)
       if (Math.abs(total - 100) > 0.01) {
         return NextResponse.json(
           { error: "Os percentuais devem somar 100%" },
@@ -64,15 +47,15 @@ export async function POST(request: Request) {
     const category = await prisma.$transaction(async (tx) => {
       const newCategory = await tx.category.create({
         data: {
-          name: validatedData.name,
-          splitType: validatedData.splitType,
+          name: body.name,
+          splitType: body.splitType || "EQUAL",
         },
       })
 
       // Create splits if custom type
-      if (validatedData.splitType === "CUSTOM" && validatedData.splits) {
+      if (body.splitType === "CUSTOM" && body.splits && body.splits.length > 0) {
         await tx.categorySplit.createMany({
-          data: validatedData.splits.map(split => ({
+          data: body.splits.map((split: any) => ({
             categoryId: newCategory.id,
             userId: split.userId,
             percentage: split.percentage
@@ -80,20 +63,23 @@ export async function POST(request: Request) {
         })
       }
 
-      return newCategory
+      // Return the category with splits
+      return await tx.category.findUnique({
+        where: { id: newCategory.id },
+        include: {
+          splits: {
+            include: {
+              user: {
+                select: { id: true, name: true }
+              }
+            }
+          }
+        }
+      })
     })
 
     return NextResponse.json(category, { status: 201 })
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      const firstError = error.issues?.[0]
-      const message = firstError?.message || "Dados inválidos"
-      return NextResponse.json(
-        { error: message },
-        { status: 400 }
-      )
-    }
-
     console.error("Error creating category:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
