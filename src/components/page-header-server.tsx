@@ -4,43 +4,55 @@ import Link from "next/link"
 import { ThemeToggle } from "./theme-toggle"
 import { UserGreeting } from "./user-greeting"
 import { SignOutButton } from "./sign-out-button"
+import { MobileMenu } from "./mobile-menu"
 
 export function PageHeaderServer() {
   return (
-    <header className="border-b">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Gastos do Apto</h1>
-          <UserGreeting />
+    <header className="border-b sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          {/* Logo and Greeting */}
+          <div className="flex-1">
+            <h1 className="text-xl md:text-2xl font-bold">Gastos do Apto</h1>
+            <UserGreeting />
+          </div>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-2">
+            <ThemeToggle />
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Home className="h-4 w-4" />
+                Início
+              </Button>
+            </Link>
+            <Link href="/ar-condicionado">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Ar Condicionado
+              </Button>
+            </Link>
+            <Link href="/categorias">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Categorias
+              </Button>
+            </Link>
+            <Link href="/configuracoes">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Config CIP
+              </Button>
+            </Link>
+            <SignOutButton />
+          </nav>
+
+          {/* Mobile Navigation */}
+          <div className="flex md:hidden items-center gap-2">
+            <ThemeToggle />
+            <MobileMenu />
+          </div>
         </div>
-        <nav className="flex gap-2">
-          <ThemeToggle />
-          <Link href="/">
-            <Button variant="outline" className="gap-2">
-              <Home className="h-4 w-4" />
-              <span className="hidden sm:inline">Início</span>
-            </Button>
-          </Link>
-          <Link href="/ar-condicionado">
-            <Button variant="outline" className="gap-2">
-              <Zap className="h-4 w-4" />
-              <span className="hidden sm:inline">Ar Condicionado</span>
-            </Button>
-          </Link>
-          <Link href="/categorias">
-            <Button variant="outline" className="gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Categorias</span>
-            </Button>
-          </Link>
-          <Link href="/configuracoes">
-            <Button variant="outline" className="gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Config CIP</span>
-            </Button>
-          </Link>
-          <SignOutButton />
-        </nav>
       </div>
     </header>
   )
