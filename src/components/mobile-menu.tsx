@@ -36,26 +36,26 @@ export function MobileMenu() {
           <span className="sr-only">Menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[250px] sm:w-[300px]">
-        <SheetHeader>
-          <SheetTitle>Menu</SheetTitle>
+      <SheetContent side="right" className="w-[280px] p-6">
+        <SheetHeader className="text-left pb-4">
+          <SheetTitle className="text-xl">Menu</SheetTitle>
         </SheetHeader>
-        <nav className="flex flex-col gap-4 mt-8">
+        <nav className="flex flex-col gap-1 mt-4">
           {menuItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors"
+              className="flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
             >
               <item.icon className="h-5 w-5" />
               {item.label}
             </Link>
           ))}
-          <hr className="my-2" />
+          <div className="my-4 border-t border-border" />
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-3 text-lg font-medium hover:text-primary transition-colors text-left"
+            className="flex items-center gap-3 px-3 py-3 rounded-lg text-base font-medium hover:bg-accent hover:text-accent-foreground transition-colors text-left w-full"
           >
             <LogOut className="h-5 w-5" />
             Sair
