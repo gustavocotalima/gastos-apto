@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Plus, Trash2, Settings } from "lucide-react"
+import { Plus, Trash2, Settings, Copy } from "lucide-react"
 import { toast } from "sonner"
 
 interface CipTier {
@@ -29,6 +29,7 @@ interface CipConfigurationFormProps {
 
 export function CipConfigurationForm({ monthYear }: CipConfigurationFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const [isCopying, setIsCopying] = useState(false)
   const [config, setConfig] = useState<CipConfiguration | null>(null)
   
   const currentMonth = monthYear || new Date().toISOString().slice(0, 7)
@@ -165,22 +166,90 @@ export function CipConfigurationForm({ monthYear }: CipConfigurationFormProps) {
   const getMonthDisplay = (monthYear: string) => {
     const [year, month] = monthYear.split("-")
     const date = new Date(parseInt(year), parseInt(month) - 1)
-    return date.toLocaleDateString("pt-BR", { 
-      month: "long", 
-      year: "numeric" 
+    return date.toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric"
     })
+  }
+
+  const copyFromPreviousMonth = async () => {
+    setIsCopying(true)
+    try {
+      // First check if there's a config in the previous month
+      const checkResponse = await fetch(`/api/cip-config/copy-from-previous?monthYear=${currentMonth}`)
+      if (!checkResponse.ok) {
+        toast.error("Erro ao verificar mês anterior")
+        return
+      }
+
+      const checkData = await checkResponse.json()
+      if (!checkData.config) {
+        toast.error(`Nenhuma configuração encontrada em ${getMonthDisplay(checkData.previousMonth)}`)
+        return
+      }
+
+      // If there's already a config for current month, just load the values without creating
+      if (config) {
+        // Just update the form with previous month values
+        setBaseValue(checkData.config.baseCalculationValue.toString())
+        setTiers(checkData.config.tiers)
+        toast.success(`Valores de ${getMonthDisplay(checkData.previousMonth)} carregados! Clique em "Atualizar" para salvar.`)
+        return
+      }
+
+      // Create new config by copying from previous month
+      const response = await fetch("/api/cip-config/copy-from-previous", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetMonthYear: currentMonth,
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setConfig(data)
+        setBaseValue(data.baseCalculationValue.toString())
+        setTiers(data.tiers)
+        toast.success(`Configuração copiada de ${getMonthDisplay(checkData.previousMonth)}!`)
+      } else {
+        const error = await response.json()
+        toast.error(error.error || "Erro ao copiar configuração")
+      }
+    } catch (error) {
+      toast.error("Erro ao copiar configuração do mês anterior")
+    } finally {
+      setIsCopying(false)
+    }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          Configuração CIP - {getMonthDisplay(currentMonth)}
-        </CardTitle>
-        <CardDescription>
-          Configure as faixas de CIP (Contribuição para Iluminação Pública) para este mês
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Configuração CIP - {getMonthDisplay(currentMonth)}
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Configure as faixas de CIP (Contribuição para Iluminação Pública) para este mês
+            </CardDescription>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={copyFromPreviousMonth}
+            disabled={isCopying}
+            className="gap-2 shrink-0"
+          >
+            <Copy className="h-4 w-4" />
+            {isCopying ? "Copiando..." : "Copiar do Mês Anterior"}
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
