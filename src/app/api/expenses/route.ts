@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { getPaginationParams, createPaginatedResponse, getPrismaSkipTake } from "@/lib/pagination"
 import { handleApiError, AuthenticationError } from "@/lib/errors"
+import { headers } from "next/headers"
 
 const expenseSchema = z.object({
   date: z.string().transform((str) => new Date(str)),
@@ -15,7 +16,9 @@ const expenseSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    const session = await auth()
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
     if (!session) {
       throw new AuthenticationError()
     }
@@ -48,7 +51,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const session = await auth()
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
     if (!session?.user?.id) {
       throw new AuthenticationError()
     }

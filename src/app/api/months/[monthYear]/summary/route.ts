@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { headers } from "next/headers"
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ monthYear: string }> }
 ) {
   try {
-    const session = await auth()
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -41,6 +44,10 @@ export async function GET(
         },
       },
     })
+
+    // Separate expenses and credits
+    const actualExpenses = expenses.filter(exp => exp.type === 'EXPENSE')
+    const credits = expenses.filter(exp => exp.type === 'CREDIT')
 
     // Get air conditioning data
     let airConditioningData = null
@@ -120,7 +127,42 @@ export async function GET(
 
     const userTotals = calculateSplits()
 
-    // Calculate who paid what
+    // Process credits by calculating their splits and adjusting what users owe
+    credits.forEach((credit) => {
+      const { category, amount, paidById } = credit
+
+      // The person who "paid" the credit (paidById) should owe less
+      // The credit amount gets split according to category rules and others owe more
+
+      if (category.splitType === 'EQUAL') {
+        // Equal split among all active users
+        const activeUserCount = users.length
+        const equalShare = amount / activeUserCount
+        users.forEach(user => {
+          if (user.id === paidById) {
+            // The credit holder owes less
+            userTotals[user.id] -= amount
+          } else {
+            // Others owe their share
+            userTotals[user.id] += equalShare
+          }
+        })
+      } else if (category.splitType === 'CUSTOM' && category.splits.length > 0) {
+        // Custom percentages from category
+        // The credit holder owes the full amount less
+        userTotals[paidById] -= amount
+
+        // Others owe their percentage share
+        category.splits.forEach(split => {
+          if (split.userId !== paidById) {
+            const userShare = amount * (split.percentage / 100)
+            userTotals[split.userId] = (userTotals[split.userId] || 0) + userShare
+          }
+        })
+      }
+    })
+
+    // Calculate who paid what (only actual expenses, no credits)
     const paidByUser = expenses.reduce((acc, expense) => {
       const userId = expense.paidBy.id
       acc[userId] = (acc[userId] || 0) + expense.amount
@@ -147,10 +189,16 @@ export async function GET(
       return acc
     }, {} as Record<string, number>)
 
+    // Calculate total expenses (only EXPENSE type)
+    const totalExpenses = actualExpenses.reduce((sum, exp) => sum + exp.amount, 0)
+    const totalCredits = credits.reduce((sum, exp) => sum + exp.amount, 0)
+
     const summary = {
       monthYear,
-      totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
-      expenseCount: expenses.length,
+      totalExpenses,
+      totalCredits,
+      expenseCount: actualExpenses.length,
+      creditCount: credits.length,
       airConditioningAmount: airConditioningData?.reduce((sum, ac) => sum + ac.calculatedAmount, 0) || 0,
       splits,
       balances,

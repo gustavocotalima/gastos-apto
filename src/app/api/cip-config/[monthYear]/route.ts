@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { headers } from "next/headers"
 
 const cipTierSchema = z.object({
   minKwh: z.number().min(0),
@@ -19,7 +20,9 @@ export async function PUT(
   { params }: { params: Promise<{ monthYear: string }> }
 ) {
   try {
-    const session = await auth()
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

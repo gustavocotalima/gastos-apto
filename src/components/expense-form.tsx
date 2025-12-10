@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus } from "lucide-react"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Plus, Edit } from "lucide-react"
 import { toast } from "sonner"
 
 interface Category {
@@ -22,20 +23,31 @@ interface User {
 
 interface ExpenseFormProps {
   onExpenseAdded: () => void
+  editingExpense?: {
+    id: string
+    date: string
+    amount: number
+    description: string
+    categoryId: string
+    paidById: string
+    type?: 'EXPENSE' | 'CREDIT'
+  }
+  onEditComplete?: () => void
 }
 
-export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
+export function ExpenseForm({ onExpenseAdded, editingExpense, onEditComplete }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
   const [users, setUsers] = useState<User[]>([])
-  
+
   // Form data
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [amount, setAmount] = useState("")
-  const [description, setDescription] = useState("")
-  const [categoryId, setCategoryId] = useState("")
-  const [paidById, setPaidById] = useState("")
+  const [date, setDate] = useState(editingExpense?.date || new Date().toISOString().split('T')[0])
+  const [amount, setAmount] = useState(editingExpense?.amount.toString() || "")
+  const [description, setDescription] = useState(editingExpense?.description || "")
+  const [categoryId, setCategoryId] = useState(editingExpense?.categoryId || "")
+  const [paidById, setPaidById] = useState(editingExpense?.paidById || "")
+  const [type, setType] = useState<'EXPENSE' | 'CREDIT'>(editingExpense?.type || 'EXPENSE')
 
   useEffect(() => {
     fetchCategories()
@@ -71,8 +83,11 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
+      const url = editingExpense ? `/api/expenses/${editingExpense.id}` : "/api/expenses"
+      const method = editingExpense ? "PUT" : "POST"
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
         },
@@ -82,19 +97,21 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
           description,
           categoryId,
           paidById,
+          type,
         }),
       })
 
       if (response.ok) {
-        toast.success("Gasto adicionado com sucesso!")
+        toast.success(editingExpense ? "Gasto atualizado com sucesso!" : "Gasto adicionado com sucesso!")
         setOpen(false)
-        resetForm()
+        if (!editingExpense) resetForm()
         onExpenseAdded()
+        if (onEditComplete) onEditComplete()
       } else {
-        toast.error("Erro ao adicionar gasto")
+        toast.error(editingExpense ? "Erro ao atualizar gasto" : "Erro ao adicionar gasto")
       }
     } catch (error) {
-      toast.error("Erro ao adicionar gasto")
+      toast.error(editingExpense ? "Erro ao atualizar gasto" : "Erro ao adicionar gasto")
     } finally {
       setIsLoading(false)
     }
@@ -110,17 +127,29 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Gasto
-        </Button>
-      </DialogTrigger>
+      {!editingExpense && (
+        <DialogTrigger asChild>
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            Novo Gasto
+          </Button>
+        </DialogTrigger>
+      )}
+      {editingExpense && (
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Adicionar Novo Gasto</DialogTitle>
+          <DialogTitle>{editingExpense ? "Editar Gasto" : "Adicionar Novo Gasto"}</DialogTitle>
           <DialogDescription>
-            Preencha os dados do gasto para adicionar ao mês atual.
+            {editingExpense
+              ? "Edite os dados do gasto."
+              : "Preencha os dados do gasto para adicionar ao mês atual."
+            }
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -189,6 +218,24 @@ export function ExpenseForm({ onExpenseAdded }: ExpenseFormProps) {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Descreva o gasto (opcional)..."
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <RadioGroup
+              value={type}
+              onValueChange={(value: 'EXPENSE' | 'CREDIT') => setType(value)}
+              className="flex flex-row space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="EXPENSE" id="expense" />
+                <Label htmlFor="expense">Gasto</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="CREDIT" id="credit" />
+                <Label htmlFor="credit">Crédito</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           <div className="flex gap-2 justify-end">

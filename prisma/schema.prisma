@@ -5,29 +5,81 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
+// Better Auth tables
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions             Session[]
+  accounts             Account[]
   paidExpenses         Expense[]
   airConditioningUsage AirConditioningUsage[]
   categorySplits       CategorySplit[]
   expenseSplits        ExpenseSplit[]
-  
+
   @@index([isActive])
   @@index([name])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
 }
 
 model Category {
@@ -35,20 +87,21 @@ model Category {
   name       String   @unique
   splitType  SplitType @default(EQUAL)
   createdAt  DateTime @default(now())
-  
+
   expenses   Expense[]
   splits     CategorySplit[]
 }
 
 model Expense {
-  id           String   @id @default(cuid())
+  id           String      @id @default(cuid())
   date         DateTime
   amount       Float
   description  String
   categoryId   String
   paidById     String
-  monthYear    String   // "2024-03" format
-  createdAt    DateTime @default(now())
+  monthYear    String      // "2024-03" format
+  type         ExpenseType @default(EXPENSE)
+  createdAt    DateTime    @default(now())
   
   category     Category @relation(fields: [categoryId], references: [id])
   paidBy       User     @relation(fields: [paidById], references: [id])
@@ -163,6 +216,11 @@ model ExpenseSplit {
 enum SplitType {
   EQUAL    // Equal split among all active users
   CUSTOM   // Custom percentages per user
+}
+
+enum ExpenseType {
+  EXPENSE
+  CREDIT
 }
 
 enum SettlementStatus {

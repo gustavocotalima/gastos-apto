@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
+import { signIn } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
@@ -22,18 +22,18 @@ export default function LoginPage() {
     setError("")
 
     try {
-      const result = await signIn("credentials", {
-        email: username,
+      const result = await signIn.email({
+        email,
         password,
-        redirect: false,
       })
 
-      if (result?.error) {
+      if (result.error) {
         setError("Credenciais inválidas")
       } else {
         router.push("/")
+        router.refresh()
       }
-    } catch (error) {
+    } catch {
       setError("Erro ao fazer login")
     } finally {
       setIsLoading(false)
@@ -55,15 +55,15 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={isLoading}
-                placeholder="Digite seu nome de usuário"
+                placeholder="Digite seu email"
               />
             </div>
             <div className="space-y-2">

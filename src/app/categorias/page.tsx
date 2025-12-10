@@ -4,6 +4,7 @@ import { CategoriesListServer } from "@/components/categories-list-server"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
+import { headers } from "next/headers"
 
 async function getCategories() {
   const categories = await prisma.category.findMany({
@@ -22,8 +23,10 @@ async function getCategories() {
 }
 
 export default async function CategoriesPage() {
-  const session = await auth()
-  
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
   if (!session) {
     redirect("/login")
   }
@@ -33,7 +36,7 @@ export default async function CategoriesPage() {
   return (
     <div className="min-h-screen bg-background">
       <Toaster />
-      
+
       <PageHeader />
 
       <main className="container mx-auto px-4 py-6 space-y-6">

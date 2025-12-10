@@ -4,6 +4,7 @@ import { AirConditioningForm } from "@/components/air-conditioning-form"
 import { MonthNavigation } from "@/components/month-navigation"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 
 interface SearchParams {
   month?: string
@@ -14,8 +15,10 @@ export default async function AirConditioningPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const session = await auth()
-  
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
   if (!session) {
     redirect("/login")
   }
@@ -26,7 +29,7 @@ export default async function AirConditioningPage({
   return (
     <div className="min-h-screen bg-background">
       <Toaster />
-      
+
       <PageHeader />
 
       <main className="container mx-auto px-4 py-6 space-y-6">

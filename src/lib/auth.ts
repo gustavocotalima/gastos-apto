@@ -1,77 +1,34 @@
-import NextAuth from "next-auth"
-import { PrismaAdapter } from "@auth/prisma-adapter"
+import { betterAuth } from "better-auth"
+import { prismaAdapter } from "better-auth/adapters/prisma"
+import { nextCookies } from "better-auth/next-js"
 import { prisma } from "@/lib/prisma"
-import { env } from "@/lib/env"
-import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
-import { z } from "zod"
 
-const loginSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-})
-
-export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
-  secret: env.NEXTAUTH_SECRET,
+export const auth = betterAuth({
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  plugins: [nextCookies()],
+  emailAndPassword: {
+    enabled: true,
+    password: {
+      hash: async (password: string) => {
+        return bcrypt.hash(password, 10)
+      },
+      verify: async (data: { hash: string; password: string }) => {
+        return bcrypt.compare(data.password, data.hash)
+      },
+    },
+  },
   session: {
-    strategy: "jwt",
-    maxAge: 24 * 60 * 60, // 24 hours
-  },
-  providers: [
-    Credentials({
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        const validatedFields = loginSchema.safeParse(credentials)
-
-        if (!validatedFields.success) {
-          return null
-        }
-
-        const { email, password } = validatedFields.data
-
-        const user = await prisma.user.findUnique({
-          where: { 
-            email: email 
-          },
-        })
-
-        if (!user || !user.password || !user.isActive) {
-          return null
-        }
-
-        const passwordsMatch = await bcrypt.compare(password, user.password)
-
-        if (!passwordsMatch) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        }
-      },
-    }),
-  ],
-  callbacks: {
-    async session({ token, session }) {
-      if (token.sub && session.user) {
-        session.user.id = token.sub
-      }
-
-      return session
-    },
-    async jwt({ token }) {
-      return token
+    expiresIn: 60 * 60 * 24, // 24 hours
+    updateAge: 60 * 60, // 1 hour
+    cookieCache: {
+      enabled: true,
+      maxAge: 60 * 5, // 5 minutes
     },
   },
-  pages: {
-    signIn: "/login",
-  },
-  debug: env.NODE_ENV === "development",
-  trustHost: true,
+  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
 })
+
+export type Session = typeof auth.$Infer.Session

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
+import { Trash2, Edit } from "lucide-react"
 import { toast } from "sonner"
 
 interface Expense {
@@ -18,6 +18,7 @@ interface Expense {
   date: string
   amount: number
   description: string
+  type?: 'EXPENSE' | 'CREDIT'
   category: {
     id: string
     name: string
@@ -31,9 +32,10 @@ interface Expense {
 interface ExpensesTableProps {
   expenses: Expense[]
   onExpenseDeleted: () => void
+  onExpenseEdit?: (expense: Expense) => void
 }
 
-export function ExpensesTable({ expenses, onExpenseDeleted }: ExpensesTableProps) {
+export function ExpensesTable({ expenses, onExpenseDeleted, onExpenseEdit }: ExpensesTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const handleDelete = async (id: string) => {
@@ -61,7 +63,12 @@ export function ExpensesTable({ expenses, onExpenseDeleted }: ExpensesTableProps
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR")
+    // Use Brazil timezone to avoid date shifting
+    const [year, month, day] = dateString.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo"
+    })
   }
 
   const formatCurrency = (amount: number) => {
@@ -102,10 +109,26 @@ export function ExpensesTable({ expenses, onExpenseDeleted }: ExpensesTableProps
               <TableCell>{expense.category.name}</TableCell>
               <TableCell>{expense.paidBy.name}</TableCell>
               <TableCell className="text-right font-mono">
-                {formatCurrency(expense.amount)}
+                {expense.type === 'CREDIT' ? (
+                  <span className="text-green-600">
+                    +{formatCurrency(expense.amount)}
+                  </span>
+                ) : (
+                  formatCurrency(expense.amount)
+                )}
               </TableCell>
               <TableCell>
                 <div className="flex gap-1">
+                  {onExpenseEdit && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onExpenseEdit(expense)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="sm"

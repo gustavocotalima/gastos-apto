@@ -28,11 +28,25 @@ interface User {
   email: string
 }
 
+interface Credit {
+  id: string
+  description: string
+  amount: number
+  fromUser: { id: string; name: string }
+  toUser?: { id: string; name: string } | null
+  category?: {
+    name: string
+    splits: Array<{ userId: string; percentage: number; user: { name: string } }>
+  } | null
+}
+
 interface MonthSummaryData {
   monthYear: string
   totalExpenses: number
   expenseCount: number
   airConditioningAmount: number
+  credits?: Credit[]
+  creditAdjustments?: Record<string, number>
   splits: Record<string, number>
   balances: Balance[]
   settlement?: {
@@ -166,43 +180,67 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Totals */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold">{formatCurrency(data.totalExpenses)}</div>
             <div className="text-sm text-muted-foreground">Total de Gastos</div>
             <div className="text-xs text-muted-foreground">{data.expenseCount} gastos</div>
           </div>
-          {data.airConditioningAmount > 0 && (
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{formatCurrency(data.airConditioningAmount)}</div>
-              <div className="text-sm text-muted-foreground">Ar Condicionado</div>
-            </div>
-          )}
-          <div className="text-center">
+          <div className="text-center p-4 bg-muted rounded-lg">
             <div className="text-2xl font-bold text-green-600">
               {formatCurrency(totalAmount)}
             </div>
-            <div className="text-sm text-muted-foreground">Total Geral</div>
+            <div className="text-sm text-muted-foreground mb-2">Total Geral</div>
+            <div className="flex flex-wrap justify-center gap-2 text-xs">
+              {Object.entries(data.splits).map(([userName, amount]) => (
+                <span key={userName} className="px-2 py-1 bg-background rounded">
+                  {userName}: {formatCurrency(amount)}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
+        {data.airConditioningAmount > 0 && (
+          <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <div className="text-xl font-bold text-blue-600">{formatCurrency(data.airConditioningAmount)}</div>
+            <div className="text-sm text-muted-foreground">Ar Condicionado</div>
+          </div>
+        )}
 
-        <Separator />
-
-        {/* Individual Splits */}
-        <div>
-          <h3 className="font-medium mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4" />
-            Divisão Individual
-          </h3>
-          <div className={`grid grid-cols-1 md:grid-cols-${Object.keys(data.splits).length} gap-4`}>
-            {Object.entries(data.splits).map(([userName, amount]) => (
-              <div key={userName} className="text-center p-3 bg-muted rounded-lg">
-                <div className="font-bold">{formatCurrency(amount)}</div>
-                <div className="text-sm text-muted-foreground">{userName}</div>
+        {/* Credits Section */}
+        {data.credits && data.credits.length > 0 && (
+          <>
+            <Separator />
+            <div>
+              <h3 className="font-medium mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                Créditos e Ajustes
+              </h3>
+              <div className="space-y-2">
+                {data.credits.map((credit) => (
+                  <div key={credit.id} className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium">{credit.fromUser.name}</div>
+                        <div className="text-sm text-muted-foreground">{credit.description}</div>
+                        {credit.category && credit.category.splits && (
+                          <div className="text-xs mt-1 text-muted-foreground">
+                            Divisão: {credit.category.splits.map(s =>
+                              `${s.user.name} (${s.percentage}%)`
+                            ).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                      <div className="font-bold text-green-600">
+                        +{formatCurrency(credit.amount)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Balances */}
         {data.balances.length > 0 && (

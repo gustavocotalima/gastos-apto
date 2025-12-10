@@ -2,8 +2,9 @@ import { z } from "zod"
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
-  NEXTAUTH_URL: z.string().url("NEXTAUTH_URL must be a valid URL"),
-  NEXTAUTH_SECRET: z.string().min(32, "NEXTAUTH_SECRET must be at least 32 characters"),
+  BETTER_AUTH_SECRET: z.string().min(32, "BETTER_AUTH_SECRET must be at least 32 characters"),
+  BETTER_AUTH_URL: z.string().url("BETTER_AUTH_URL must be a valid URL"),
+  NEXT_PUBLIC_APP_URL: z.string().url("NEXT_PUBLIC_APP_URL must be a valid URL").optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 })
 
@@ -15,9 +16,9 @@ function validateEnv(): Env {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map(e => e.path.join(".")).join(", ")
-      console.error("❌ Invalid environment variables:", missingVars)
+      console.error("Invalid environment variables:", missingVars)
       console.error("Please check your .env file against .env.example")
-      
+
       // Only throw in production, warn in development
       if (process.env.NODE_ENV === "production") {
         throw new Error(`Missing required environment variables: ${missingVars}`)

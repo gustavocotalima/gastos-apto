@@ -2,12 +2,15 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
+import { headers } from "next/headers"
 
 const expenseUpdateSchema = z.object({
   date: z.string().transform((str) => new Date(str)).optional(),
   amount: z.number().positive().optional(),
   description: z.string().min(1).optional(),
   categoryId: z.string().optional(),
+  paidById: z.string().optional(),
+  type: z.enum(['EXPENSE', 'CREDIT']).optional(),
 })
 
 export async function PUT(
@@ -16,7 +19,9 @@ export async function PUT(
 ) {
   const { id } = await params
   try {
-    const session = await auth()
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -29,6 +34,8 @@ export async function PUT(
       amount?: number
       description?: string
       categoryId?: string
+      paidById?: string
+      type?: 'EXPENSE' | 'CREDIT'
       monthYear?: string
     } = { ...validatedData }
     if (validatedData.date) {
@@ -60,7 +67,9 @@ export async function DELETE(
 ) {
   const { id } = await params
   try {
-    const session = await auth()
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }

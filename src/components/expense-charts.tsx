@@ -28,8 +28,11 @@ const COLORS = [
 ]
 
 export function ExpenseCharts({ expenses }: ExpenseChartsProps) {
-  // Aggregate expenses by category
-  const categoryData = expenses.reduce((acc, expense) => {
+  // Filter out credits (negative amounts)
+  const actualExpenses = expenses.filter(expense => expense.amount > 0)
+
+  // Aggregate expenses by category (excluding credits)
+  const categoryData = actualExpenses.reduce((acc, expense) => {
     const categoryName = expense.category.name
     if (!acc[categoryName]) {
       acc[categoryName] = 0
@@ -43,8 +46,8 @@ export function ExpenseCharts({ expenses }: ExpenseChartsProps) {
     value: Number(value.toFixed(2))
   }))
 
-  // Aggregate expenses by payer
-  const payerData = expenses.reduce((acc, expense) => {
+  // Aggregate expenses by payer (excluding credits)
+  const payerData = actualExpenses.reduce((acc, expense) => {
     const payerName = expense.paidBy.name
     if (!acc[payerName]) {
       acc[payerName] = 0
@@ -65,9 +68,9 @@ export function ExpenseCharts({ expenses }: ExpenseChartsProps) {
     }).format(value)
   }
 
-  const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const totalExpenses = actualExpenses.reduce((sum, expense) => sum + expense.amount, 0)
 
-  if (expenses.length === 0) {
+  if (actualExpenses.length === 0) {
     return (
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

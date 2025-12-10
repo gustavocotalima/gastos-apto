@@ -7,6 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ExpenseDeleteButton } from "./expense-delete-button"
+import { ExpenseEditButton } from "./expense-edit-button"
 import { Card } from "@/components/ui/card"
 
 interface Expense {
@@ -14,6 +15,7 @@ interface Expense {
   date: string
   amount: number
   description: string
+  type?: 'EXPENSE' | 'CREDIT'
   category: {
     id: string
     name: string
@@ -63,14 +65,23 @@ export function ExpensesTableServer({ expenses }: ExpensesTableServerProps) {
                   {formatDate(expense.date)} • {expense.category.name}
                 </div>
               </div>
-              <ExpenseDeleteButton expenseId={expense.id} />
+              <div className="flex gap-1">
+                <ExpenseEditButton expense={expense} />
+                <ExpenseDeleteButton expenseId={expense.id} />
+              </div>
             </div>
             <div className="flex justify-between items-center pt-2 border-t">
               <span className="text-sm text-muted-foreground">
                 Pago por: {expense.paidBy.name}
               </span>
               <span className="font-mono font-semibold">
-                {formatCurrency(expense.amount)}
+                {expense.type === 'CREDIT' ? (
+                  <span className="text-green-600">
+                    +{formatCurrency(expense.amount)}
+                  </span>
+                ) : (
+                  formatCurrency(expense.amount)
+                )}
               </span>
             </div>
           </Card>
@@ -102,10 +113,19 @@ export function ExpensesTableServer({ expenses }: ExpensesTableServerProps) {
                 <TableCell>{expense.category.name}</TableCell>
                 <TableCell>{expense.paidBy.name}</TableCell>
                 <TableCell className="text-right font-mono">
-                  {formatCurrency(expense.amount)}
+                  {expense.type === 'CREDIT' ? (
+                    <span className="text-green-600">
+                      +{formatCurrency(expense.amount)}
+                    </span>
+                  ) : (
+                    formatCurrency(expense.amount)
+                  )}
                 </TableCell>
                 <TableCell>
-                  <ExpenseDeleteButton expenseId={expense.id} />
+                  <div className="flex gap-1">
+                <ExpenseEditButton expense={expense} />
+                <ExpenseDeleteButton expenseId={expense.id} />
+              </div>
                 </TableCell>
               </TableRow>
             ))}

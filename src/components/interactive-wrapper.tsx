@@ -3,12 +3,15 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { ExpenseForm } from "./expense-form"
+import { CopyExpensesDialog } from "./copy-expenses-dialog"
 
 export function InteractiveWrapper() {
   const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const currentMonthYear = searchParams.get("month") || new Date().toISOString().slice(0, 7)
 
   const handleRefresh = async () => {
     setRefreshing(true)
@@ -21,10 +24,10 @@ export function InteractiveWrapper() {
   }
 
   return (
-    <div className="flex gap-2">
-      <Button 
-        variant="outline" 
-        size="sm" 
+    <div className="flex gap-2 flex-wrap">
+      <Button
+        variant="outline"
+        size="sm"
         onClick={handleRefresh}
         disabled={refreshing}
         className="gap-2"
@@ -32,6 +35,10 @@ export function InteractiveWrapper() {
         <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         Atualizar
       </Button>
+      <CopyExpensesDialog
+        currentMonthYear={currentMonthYear}
+        onExpensesCopied={handleExpenseAdded}
+      />
       <ExpenseForm onExpenseAdded={handleExpenseAdded} />
     </div>
   )

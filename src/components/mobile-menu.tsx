@@ -2,9 +2,10 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Menu, X, Home, Zap, Settings, LogOut } from "lucide-react"
+import { Menu, Home, Zap, Settings, LogOut } from "lucide-react"
 import Link from "next/link"
-import { signOut } from "next-auth/react"
+import { signOut } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
 import {
   Sheet,
   SheetContent,
@@ -15,10 +16,13 @@ import {
 
 export function MobileMenu() {
   const [open, setOpen] = useState(false)
+  const router = useRouter()
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setOpen(false)
-    signOut()
+    await signOut()
+    router.push("/login")
+    router.refresh()
   }
 
   const menuItems = [

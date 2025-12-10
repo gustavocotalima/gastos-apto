@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { redirect } from "next/navigation"
+import { headers } from "next/headers"
 
 interface SearchParams {
   month?: string
@@ -27,7 +28,8 @@ async function getExpenses(monthYear: string) {
   // Transform Date objects to strings for client components
   return expenses.map(expense => ({
     ...expense,
-    date: expense.date.toISOString().split('T')[0]
+    date: expense.date.toISOString().split('T')[0],
+    type: expense.type || 'EXPENSE'
   }))
 }
 
@@ -36,8 +38,10 @@ export default async function Home({
 }: {
   searchParams: Promise<SearchParams>
 }) {
-  const session = await auth()
-  
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
   if (!session) {
     redirect("/login")
   }
