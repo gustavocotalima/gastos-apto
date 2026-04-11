@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { headers } from "next/headers"
+import { handleApiError, AuthenticationError } from "@/lib/errors"
 
 const expenseUpdateSchema = z.object({
   date: z.string().transform((str) => new Date(str)).optional(),
@@ -17,15 +18,13 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
+    const { id } = await params
     const body = await request.json()
     const validatedData = expenseUpdateSchema.parse(body)
 
@@ -53,26 +52,21 @@ export async function PUT(
 
     return NextResponse.json(expense)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
-    }
-    console.error("Error updating expense:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
+
+    const { id } = await params
 
     await prisma.expense.delete({
       where: { id },
@@ -80,7 +74,6 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error deleting expense:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }

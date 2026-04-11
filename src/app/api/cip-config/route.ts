@@ -3,26 +3,29 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { headers } from "next/headers"
+import {
+  handleApiError,
+  AuthenticationError,
+  ConflictError,
+} from "@/lib/errors"
 
 const cipTierSchema = z.object({
-  minKwh: z.number().min(0),
-  maxKwh: z.number().min(0).nullable(),
+  minKwh: z.number().min(0).max(100_000),
+  maxKwh: z.number().min(0).max(100_000).nullable(),
   percentage: z.number().min(0).max(100),
 })
 
 const cipConfigSchema = z.object({
   monthYear: z.string().regex(/^\d{4}-\d{2}$/),
-  baseCalculationValue: z.number().positive(),
-  tiers: z.array(cipTierSchema).min(1),
+  baseCalculationValue: z.number().positive().max(1_000_000),
+  tiers: z.array(cipTierSchema).min(1).max(50),
 })
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const { searchParams } = new URL(request.url)
@@ -39,33 +42,26 @@ export async function GET(request: Request) {
 
     return NextResponse.json(config)
   } catch (error) {
-    console.error("Error fetching CIP config:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const body = await request.json()
     const validatedData = cipConfigSchema.parse(body)
 
-    // Check if config for this month already exists
     const existingConfig = await prisma.cipConfiguration.findUnique({
       where: { monthYear: validatedData.monthYear },
     })
 
     if (existingConfig) {
-      return NextResponse.json(
-        { error: "Configuração para este mês já existe" },
-        { status: 400 }
-      )
+      throw new ConflictError("Configuração para este mês já existe")
     }
 
     const config = await prisma.cipConfiguration.create({
@@ -85,10 +81,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(config)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
-    }
-    console.error("Error creating CIP config:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }

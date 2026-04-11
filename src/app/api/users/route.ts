@@ -2,14 +2,13 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers"
+import { handleApiError, AuthenticationError } from "@/lib/errors"
 
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const users = await prisma.user.findMany({
@@ -22,7 +21,6 @@ export async function GET() {
 
     return NextResponse.json(users)
   } catch (error) {
-    console.error("Error fetching users:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }

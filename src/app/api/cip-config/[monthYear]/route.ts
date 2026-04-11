@@ -3,16 +3,17 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { headers } from "next/headers"
+import { handleApiError, AuthenticationError } from "@/lib/errors"
 
 const cipTierSchema = z.object({
-  minKwh: z.number().min(0),
-  maxKwh: z.number().min(0).nullable(),
+  minKwh: z.number().min(0).max(100_000),
+  maxKwh: z.number().min(0).max(100_000).nullable(),
   percentage: z.number().min(0).max(100),
 })
 
 const cipConfigUpdateSchema = z.object({
-  baseCalculationValue: z.number().positive().optional(),
-  tiers: z.array(cipTierSchema).min(1).optional(),
+  baseCalculationValue: z.number().positive().max(1_000_000).optional(),
+  tiers: z.array(cipTierSchema).min(1).max(50).optional(),
 })
 
 export async function PUT(
@@ -20,17 +21,14 @@ export async function PUT(
   { params }: { params: Promise<{ monthYear: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const body = await request.json()
     const validatedData = cipConfigUpdateSchema.parse(body)
 
-    // Update the configuration
     const updateData: { baseCalculationValue?: number } = {}
     if (validatedData.baseCalculationValue !== undefined) {
       updateData.baseCalculationValue = validatedData.baseCalculationValue
@@ -48,14 +46,11 @@ export async function PUT(
       },
     })
 
-    // If tiers are provided, replace them
     if (validatedData.tiers) {
-      // Delete existing tiers
       await prisma.cipTier.deleteMany({
         where: { configurationId: config.id },
       })
 
-      // Create new tiers
       await prisma.cipTier.createMany({
         data: validatedData.tiers.map((tier) => ({
           ...tier,
@@ -64,7 +59,6 @@ export async function PUT(
       })
     }
 
-    // Fetch updated config with tiers
     const updatedConfig = await prisma.cipConfiguration.findUnique({
       where: { monthYear },
       include: {
@@ -76,10 +70,6 @@ export async function PUT(
 
     return NextResponse.json(updatedConfig)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
-    }
-    console.error("Error updating CIP config:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }

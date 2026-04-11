@@ -3,6 +3,12 @@ import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { headers } from "next/headers"
+import {
+  handleApiError,
+  AuthenticationError,
+  ValidationError,
+  NotFoundError,
+} from "@/lib/errors"
 
 const airConditioningSchema = z.object({
   monthYear: z.string().regex(/^\d{4}-\d{2}$/),
@@ -15,18 +21,16 @@ const airConditioningSchema = z.object({
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const { searchParams } = new URL(request.url)
     const monthYear = searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
 
     const usage = await prisma.airConditioningUsage.findFirst({
-      where: { 
+      where: {
         monthYear,
         userId: session.user.id,
       },
@@ -34,32 +38,26 @@ export async function GET(request: Request) {
 
     return NextResponse.json(usage)
   } catch (error) {
-    console.error("Error fetching air conditioning usage:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const body = await request.json()
     const validatedData = airConditioningSchema.parse(body)
 
-    // Validate that air consumption doesn't exceed total consumption
     if (validatedData.airConsumptionKwh > validatedData.totalConsumptionKwh) {
-      return NextResponse.json(
-        { error: "Consumo do ar condicionado não pode ser maior que o consumo total" },
-        { status: 400 }
+      throw new ValidationError(
+        "Consumo do ar condicionado não pode ser maior que o consumo total"
       )
     }
 
-    // Get CIP configuration for the month
     const cipConfig = await prisma.cipConfiguration.findUnique({
       where: { monthYear: validatedData.monthYear },
       include: {
@@ -70,10 +68,7 @@ export async function POST(request: Request) {
     })
 
     if (!cipConfig) {
-      return NextResponse.json(
-        { error: "Configuração CIP não encontrada para este mês" },
-        { status: 400 }
-      )
+      throw new NotFoundError("Configuração CIP para este mês")
     }
 
     // Calculate consumption without air conditioning
@@ -150,10 +145,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(usage)
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid data", details: error.issues }, { status: 400 })
-    }
-    console.error("Error calculating air conditioning:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
