@@ -95,7 +95,7 @@ export async function POST(request: Request) {
     const cipTierWithoutAir = findCipTier(consumptionWithoutAir)
     const cipTierWithAir = findCipTier(validatedData.totalConsumptionKwh)
 
-    // Calculate how much user1 should pay
+    // Calculate how much the current user should pay
     let calculatedAmount = 0
 
     // 1. Pay for the proportional air conditioning consumption

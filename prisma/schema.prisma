@@ -148,7 +148,7 @@ model AirConditioningUsage {
   totalBillAmount     Float    // total energy bill
   kwhUnitPrice        Float    // price per kWh
   totalCipAmount      Float    // total CIP paid
-  calculatedAmount    Float    // amount user1 must pay
+  calculatedAmount    Float    // amount the current user must pay
   cipTierWithoutAir   Float    // CIP tier without AC
   cipTierWithAir      Float    // CIP tier with AC
   createdAt           DateTime @default(now())

@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Calculator, Zap } from "lucide-react"
 import { toast } from "sonner"
+import { useSession } from "@/lib/auth-client"
 
 interface AirConditioningData {
   id?: string
@@ -28,6 +29,8 @@ interface AirConditioningFormProps {
 }
 
 export function AirConditioningForm({ monthYear, onCalculated }: AirConditioningFormProps) {
+  const { data: session } = useSession()
+  const userName = session?.user?.name ?? "você"
   const [isLoading, setIsLoading] = useState(false)
   const [existingData, setExistingData] = useState<AirConditioningData | null>(null)
   
@@ -225,7 +228,7 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
                 {formatCurrency(existingData.calculatedAmount)}
               </div>
               <div className="text-muted-foreground">
-                Valor que user1 deve pagar
+                Valor que {userName} deve pagar
               </div>
             </div>
 
