@@ -244,9 +244,9 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
               <div>
                 <h4 className="font-medium mb-2">Faixas CIP:</h4>
                 <div className="space-y-1">
-                  <div>Sem ar: {existingData.cipTierWithoutAir}%</div>
-                  <div>Com ar: {existingData.cipTierWithAir}%</div>
-                  {existingData.cipTierWithAir > existingData.cipTierWithoutAir && (
+                  <div>Sem ar: {existingData.cipTierWithoutAir ?? 0}%</div>
+                  <div>Com ar: {existingData.cipTierWithAir ?? 0}%</div>
+                  {(existingData.cipTierWithAir ?? 0) > (existingData.cipTierWithoutAir ?? 0) && (
                     <div className="text-orange-600">
                       ⚠️ Mudou de faixa CIP
                     </div>

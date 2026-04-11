@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
 import { nextCookies } from "better-auth/next-js"
 import { prisma } from "@/lib/prisma"
+import { env } from "@/lib/env"
 import bcrypt from "bcryptjs"
 
 export const auth = betterAuth({
@@ -13,7 +14,7 @@ export const auth = betterAuth({
     enabled: true,
     password: {
       hash: async (password: string) => {
-        return bcrypt.hash(password, 10)
+        return bcrypt.hash(password, 12)
       },
       verify: async (data: { hash: string; password: string }) => {
         return bcrypt.compare(data.password, data.hash)
@@ -28,7 +29,7 @@ export const auth = betterAuth({
       maxAge: 60 * 5, // 5 minutes
     },
   },
-  trustedOrigins: [process.env.BETTER_AUTH_URL || "http://localhost:3000"],
+  trustedOrigins: [env.BETTER_AUTH_URL],
 })
 
 export type Session = typeof auth.$Infer.Session

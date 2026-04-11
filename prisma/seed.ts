@@ -1,13 +1,11 @@
-import { PrismaClient } from "@prisma/client"
-import bcrypt from "bcryptjs"
+import { PrismaClient } from "../src/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
 
-const prisma = new PrismaClient()
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   console.log("Starting seed...")
-
-  // Default password for all users
-  const hashedPassword = await bcrypt.hash("REDACTED", 12)
 
   // Check if there are any users already
   const existingUsers = await prisma.user.findMany()
@@ -17,7 +15,7 @@ async function main() {
     console.log("Example: Create users via the API or database directly")
   } else {
     console.log(`Found ${existingUsers.length} existing users:`)
-    existingUsers.forEach(user => {
+    existingUsers.forEach((user: { name: string; email: string }) => {
       console.log(`- ${user.name} (${user.email})`)
     })
   }

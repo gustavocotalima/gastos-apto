@@ -25,7 +25,6 @@ async function getExpenses(monthYear: string) {
     },
     orderBy: { date: "desc" },
   })
-  // Transform Date objects to strings for client components
   return expenses.map(expense => ({
     ...expense,
     date: expense.date.toISOString().split('T')[0],

@@ -1,8 +1,30 @@
 import { NextResponse } from "next/server"
+import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { z } from "zod"
+import { handleApiError, AuthenticationError, ValidationError } from "@/lib/errors"
+import { headers } from "next/headers"
+
+const categorySchema = z.object({
+  name: z.string().min(1),
+  splitType: z.enum(["EQUAL", "CUSTOM"]).default("EQUAL"),
+  splits: z
+    .array(
+      z.object({
+        userId: z.string().min(1),
+        percentage: z.number().min(0).max(100),
+      })
+    )
+    .optional(),
+})
 
 export async function GET() {
   try {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session) {
+      throw new AuthenticationError()
+    }
+
     const categories = await prisma.category.findMany({
       include: {
         splits: {
@@ -18,52 +40,45 @@ export async function GET() {
 
     return NextResponse.json(categories)
   } catch (error) {
-    console.error("Error fetching categories:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    
-    // Basic validation without zod
-    if (!body.name || typeof body.name !== 'string') {
-      return NextResponse.json({ error: "Nome é obrigatório" }, { status: 400 })
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user?.id) {
+      throw new AuthenticationError()
     }
 
-    // Validate custom splits if provided
-    if (body.splitType === "CUSTOM" && body.splits) {
-      const total = body.splits.reduce((sum: number, split: any) => sum + split.percentage, 0)
+    const body = await request.json()
+    const data = categorySchema.parse(body)
+
+    if (data.splitType === "CUSTOM" && data.splits) {
+      const total = data.splits.reduce((sum, split) => sum + split.percentage, 0)
       if (Math.abs(total - 100) > 0.01) {
-        return NextResponse.json(
-          { error: "Os percentuais devem somar 100%" },
-          { status: 400 }
-        )
+        throw new ValidationError("Os percentuais devem somar 100%")
       }
     }
 
-    // Create category with splits in a transaction
     const category = await prisma.$transaction(async (tx) => {
       const newCategory = await tx.category.create({
         data: {
-          name: body.name,
-          splitType: body.splitType || "EQUAL",
+          name: data.name,
+          splitType: data.splitType,
         },
       })
 
-      // Create splits if custom type
-      if (body.splitType === "CUSTOM" && body.splits && body.splits.length > 0) {
+      if (data.splitType === "CUSTOM" && data.splits && data.splits.length > 0) {
         await tx.categorySplit.createMany({
-          data: body.splits.map((split: any) => ({
+          data: data.splits.map((split) => ({
             categoryId: newCategory.id,
             userId: split.userId,
-            percentage: split.percentage
-          }))
+            percentage: split.percentage,
+          })),
         })
       }
 
-      // Return the category with splits
       return await tx.category.findUnique({
         where: { id: newCategory.id },
         include: {
@@ -80,7 +95,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(category, { status: 201 })
   } catch (error) {
-    console.error("Error creating category:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
