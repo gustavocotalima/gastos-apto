@@ -20,7 +20,7 @@ export async function GET(
     // Get all active users
     const users = await prisma.user.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true },
     })
 
     // Get all expenses for the month

@@ -1,0 +1,14 @@
+.env*
+node_modules
+.next
+.git
+.gitignore
+logs
+cypress
+coverage
+*.log
+.DS_Store
+CLAUDE.md
+project-plan.md
+.vscode
+.idea

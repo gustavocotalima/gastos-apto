@@ -12,6 +12,7 @@ export const auth = betterAuth({
   plugins: [nextCookies()],
   emailAndPassword: {
     enabled: true,
+    disableSignUp: true,
     password: {
       hash: async (password: string) => {
         return bcrypt.hash(password, 12)
@@ -20,6 +21,11 @@ export const auth = betterAuth({
         return bcrypt.compare(data.password, data.hash)
       },
     },
+  },
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 10,
   },
   session: {
     expiresIn: 60 * 60 * 24, // 24 hours

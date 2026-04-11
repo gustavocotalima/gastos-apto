@@ -2,7 +2,13 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers"
+import { z } from "zod"
 import { handleApiError, AuthenticationError } from "@/lib/errors"
+
+const copyExpensesSchema = z.object({
+  expenseIds: z.array(z.string().min(1)).min(1),
+  targetMonthYear: z.string().regex(/^\d{4}-\d{2}$/),
+})
 
 // GET: Fetch expenses from the previous month
 export async function GET(request: Request) {
@@ -60,14 +66,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { expenseIds, targetMonthYear } = body
-
-    if (!expenseIds || !Array.isArray(expenseIds) || expenseIds.length === 0) {
-      return NextResponse.json(
-        { error: "No expenses selected" },
-        { status: 400 }
-      )
-    }
+    const { expenseIds, targetMonthYear } = copyExpensesSchema.parse(body)
 
     // Fetch the original expenses
     const originalExpenses = await prisma.expense.findMany({

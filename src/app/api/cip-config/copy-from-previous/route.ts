@@ -2,6 +2,12 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers"
+import { z } from "zod"
+import { handleApiError, AuthenticationError, ValidationError, NotFoundError, ConflictError } from "@/lib/errors"
+
+const copyCipSchema = z.object({
+  targetMonthYear: z.string().regex(/^\d{4}-\d{2}$/),
+})
 
 function getPreviousMonth(monthYear: string): string {
   const [year, month] = monthYear.split("-").map(Number)
@@ -11,18 +17,16 @@ function getPreviousMonth(monthYear: string): string {
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
+    const session = await auth.api.getSession({ headers: await headers() })
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      throw new AuthenticationError()
     }
 
     const { searchParams } = new URL(request.url)
     const monthYear = searchParams.get("monthYear")
 
-    if (!monthYear) {
-      return NextResponse.json({ error: "monthYear is required" }, { status: 400 })
+    if (!monthYear || !/^\d{4}-\d{2}$/.test(monthYear)) {
+      throw new ValidationError("monthYear is required and must be YYYY-MM")
     }
 
     const previousMonth = getPreviousMonth(monthYear)
@@ -55,42 +59,32 @@ export async function GET(request: Request) {
       },
     })
   } catch (error) {
-    console.error("Error fetching previous CIP config:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers()
-    })
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user?.id) {
+      throw new AuthenticationError()
     }
 
     const body = await request.json()
-    const { targetMonthYear } = body as { targetMonthYear: string }
-
-    if (!targetMonthYear) {
-      return NextResponse.json({ error: "targetMonthYear is required" }, { status: 400 })
-    }
+    const { targetMonthYear } = copyCipSchema.parse(body)
 
     const previousMonth = getPreviousMonth(targetMonthYear)
 
-    // Check if config already exists for target month
     const existingConfig = await prisma.cipConfiguration.findUnique({
       where: { monthYear: targetMonthYear },
     })
 
     if (existingConfig) {
-      return NextResponse.json(
-        { error: "Configuração para este mês já existe. Delete a configuração atual antes de copiar." },
-        { status: 400 }
+      throw new ConflictError(
+        "Configuração para este mês já existe. Delete a configuração atual antes de copiar."
       )
     }
 
-    // Get previous month config
     const previousConfig = await prisma.cipConfiguration.findUnique({
       where: { monthYear: previousMonth },
       include: {
@@ -101,13 +95,9 @@ export async function POST(request: Request) {
     })
 
     if (!previousConfig) {
-      return NextResponse.json(
-        { error: "Nenhuma configuração encontrada no mês anterior" },
-        { status: 404 }
-      )
+      throw new NotFoundError("Nenhuma configuração encontrada no mês anterior")
     }
 
-    // Create new config with copied data
     const newConfig = await prisma.cipConfiguration.create({
       data: {
         monthYear: targetMonthYear,
@@ -129,7 +119,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(newConfig)
   } catch (error) {
-    console.error("Error copying CIP config:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return handleApiError(error)
   }
 }
