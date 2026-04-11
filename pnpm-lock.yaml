@@ -56,6 +56,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
       lucide-react:
         specifier: ^0.561.0
         version: 0.561.0(react@19.2.3)
@@ -135,9 +138,6 @@ importers:
       cypress:
         specifier: ^15.7.1
         version: 15.7.1
-      dotenv:
-        specifier: ^17.2.3
-        version: 17.2.3
       eslint:
         specifier: ^9.39.1
         version: 9.39.1(jiti@2.6.1)

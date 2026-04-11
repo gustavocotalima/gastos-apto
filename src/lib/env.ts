@@ -11,6 +11,14 @@ const envSchema = z.object({
 type Env = z.infer<typeof envSchema>
 
 function validateEnv(): Env {
+  // Bypass validation during build-time contexts that don't have real
+  // secrets (Docker builder stage, CI without env). Runtime production
+  // containers must never set this — validation stays strict there.
+  // Standard t3-env pattern used by create-t3-app.
+  if (process.env.SKIP_ENV_VALIDATION === "true") {
+    return process.env as Env
+  }
+
   try {
     return envSchema.parse(process.env)
   } catch (error) {

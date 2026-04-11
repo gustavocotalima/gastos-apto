@@ -39,7 +39,21 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
   serverExternalPackages: ["@prisma/client", "bcryptjs"],
+  // Prisma's generated client lives outside the default node_modules
+  // trace (custom output path). Explicitly include it, and the Prisma
+  // runtime packages it depends on, so the standalone build ships them.
+  outputFileTracingIncludes: {
+    "/**/*": [
+      "./src/generated/prisma/**/*",
+      "./node_modules/@prisma/client/**/*",
+      "./node_modules/@prisma/engines/**/*",
+      "./node_modules/@prisma/adapter-pg/**/*",
+      "./node_modules/pg/**/*",
+      "./node_modules/bcryptjs/**/*",
+    ],
+  },
   turbopack: {
     rules: {
       '*.svg': {
