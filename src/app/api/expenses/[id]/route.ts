@@ -6,10 +6,10 @@ import { headers } from "next/headers"
 
 const expenseUpdateSchema = z.object({
   date: z.string().transform((str) => new Date(str)).optional(),
-  amount: z.number().positive().optional(),
-  description: z.string().min(1).optional(),
-  categoryId: z.string().optional(),
-  paidById: z.string().optional(),
+  amount: z.number().positive().max(1_000_000).optional(),
+  description: z.string().min(1).max(500).optional(),
+  categoryId: z.string().min(1).max(100).optional(),
+  paidById: z.string().min(1).max(100).optional(),
   type: z.enum(['EXPENSE', 'CREDIT']).optional(),
 })
 

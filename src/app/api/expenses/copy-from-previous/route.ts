@@ -6,7 +6,7 @@ import { z } from "zod"
 import { handleApiError, AuthenticationError } from "@/lib/errors"
 
 const copyExpensesSchema = z.object({
-  expenseIds: z.array(z.string().min(1)).min(1),
+  expenseIds: z.array(z.string().min(1).max(100)).min(1).max(100),
   targetMonthYear: z.string().regex(/^\d{4}-\d{2}$/),
 })
 

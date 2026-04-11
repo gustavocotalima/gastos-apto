@@ -6,15 +6,16 @@ import { handleApiError, AuthenticationError, ValidationError } from "@/lib/erro
 import { headers } from "next/headers"
 
 const categorySchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(100),
   splitType: z.enum(["EQUAL", "CUSTOM"]).default("EQUAL"),
   splits: z
     .array(
       z.object({
-        userId: z.string().min(1),
+        userId: z.string().min(1).max(100),
         percentage: z.number().min(0).max(100),
       })
     )
+    .max(20)
     .optional(),
 })
 

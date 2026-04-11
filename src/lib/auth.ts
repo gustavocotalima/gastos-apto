@@ -13,6 +13,8 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     disableSignUp: true,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
     password: {
       hash: async (password: string) => {
         return bcrypt.hash(password, 12)

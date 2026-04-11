@@ -8,10 +8,10 @@ import { headers } from "next/headers"
 
 const expenseSchema = z.object({
   date: z.string().transform((str) => new Date(str)),
-  amount: z.number().positive(),
-  description: z.string().min(1),
-  categoryId: z.string(),
-  paidById: z.string(),
+  amount: z.number().positive().max(1_000_000),
+  description: z.string().min(1).max(500),
+  categoryId: z.string().min(1).max(100),
+  paidById: z.string().min(1).max(100),
 })
 
 export async function GET(request: Request) {

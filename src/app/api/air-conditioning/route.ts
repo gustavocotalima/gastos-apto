@@ -6,11 +6,11 @@ import { headers } from "next/headers"
 
 const airConditioningSchema = z.object({
   monthYear: z.string().regex(/^\d{4}-\d{2}$/),
-  airConsumptionKwh: z.number().min(0),
-  totalConsumptionKwh: z.number().min(0),
-  totalBillAmount: z.number().positive(),
-  kwhUnitPrice: z.number().positive(),
-  totalCipAmount: z.number().min(0),
+  airConsumptionKwh: z.number().min(0).max(100_000),
+  totalConsumptionKwh: z.number().positive().max(100_000),
+  totalBillAmount: z.number().positive().max(1_000_000),
+  kwhUnitPrice: z.number().positive().max(100),
+  totalCipAmount: z.number().min(0).max(1_000_000),
 })
 
 export async function GET(request: Request) {
