@@ -27,7 +27,8 @@ model User {
   sessions             Session[]
   accounts             Account[]
   paidExpenses         Expense[]
-  airConditioningUsage AirConditioningUsage[]
+  airConditioningUsage AirConditioningUsage[] @relation("AcConsumer")
+  airConditioningPaid  AirConditioningUsage[] @relation("AcPaidBy")
   categorySplits       CategorySplit[]
   expenseSplits        ExpenseSplit[]
 
@@ -103,9 +104,10 @@ model Expense {
   type         ExpenseType @default(EXPENSE)
   createdAt    DateTime    @default(now())
   
-  category     Category @relation(fields: [categoryId], references: [id])
-  paidBy       User     @relation(fields: [paidById], references: [id])
-  customSplits ExpenseSplit[]
+  category             Category @relation(fields: [categoryId], references: [id])
+  paidBy               User     @relation(fields: [paidById], references: [id])
+  customSplits         ExpenseSplit[]
+  airConditioningUsage AirConditioningUsage?
   
   @@index([monthYear])
   @@index([categoryId])
@@ -143,18 +145,24 @@ model AirConditioningUsage {
   id                  String   @id @default(cuid())
   monthYear           String
   userId              String
-  airConsumptionKwh   Float    // AC consumption
-  totalConsumptionKwh Float    // total apartment consumption
-  totalBillAmount     Float    // total energy bill
-  kwhUnitPrice        Float    // price per kWh
-  totalCipAmount      Float    // total CIP paid
-  calculatedAmount    Float    // amount the current user must pay
-  cipTierWithoutAir   Float    // CIP tier without AC
-  cipTierWithAir      Float    // CIP tier with AC
+  airConsumptionKwh   Float
+  totalConsumptionKwh Float
+  totalBillAmount     Float
+  kwhUnitPrice        Float
+  totalCipAmount      Float
+  calculatedAmount    Float
+  cipTierWithoutAir   Float
+  cipTierWithAir      Float
+  cipWithoutAirAmount Float?
+  acExtraCost         Float?
+  paidById            String?
+  expenseId           String?  @unique
   createdAt           DateTime @default(now())
-  
-  user                User     @relation(fields: [userId], references: [id])
-  
+
+  user                User     @relation("AcConsumer", fields: [userId], references: [id])
+  paidBy              User?    @relation("AcPaidBy", fields: [paidById], references: [id])
+  expense             Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
   @@index([monthYear])
   @@index([userId])
   @@index([monthYear, userId])

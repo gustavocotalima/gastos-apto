@@ -235,6 +235,35 @@ describe('validateExpenseSplits', () => {
   })
 })
 
+describe('AC-generated expense with custom splits', () => {
+  it('should produce correct per-user totals for electricity bill with AC', () => {
+    const acExtraCost = 184.58
+    const totalBill = 444.06
+    const nonAcPortion = totalBill - acExtraCost
+    const perUserShare = nonAcPortion / mockUsers.length
+
+    const electricityExpense: Expense = {
+      id: 'elec-1',
+      amount: totalBill,
+      category: equalCategory,
+      customSplits: [
+        { userId: '1', amount: perUserShare + acExtraCost, user: { name: 'user1' } },
+        { userId: '2', amount: perUserShare, user: { name: 'user2' } },
+        { userId: '3', amount: perUserShare, user: { name: 'user3' } },
+      ],
+    }
+
+    const result = calculateExpenseSplit(electricityExpense, mockUsers)
+
+    expect(result['1']).toBeCloseTo(271.07, 0)
+    expect(result['2']).toBeCloseTo(86.49, 0)
+    expect(result['3']).toBeCloseTo(86.49, 0)
+
+    const total = result['1'] + result['2'] + result['3']
+    expect(total).toBeCloseTo(totalBill, 1)
+  })
+})
+
 describe('Edge Cases', () => {
   it('should handle category with no splits defined for CUSTOM type', () => {
     const categoryWithoutSplits: Category = {

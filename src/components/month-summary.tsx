@@ -154,7 +154,7 @@ export function MonthSummary({ monthYear, onStatusChanged }: MonthSummaryProps) 
     )
   }
 
-  const totalAmount = data.totalExpenses + data.airConditioningAmount
+  const totalAmount = data.totalExpenses
 
   return (
     <Card>

@@ -103,13 +103,6 @@ export async function POST(
           }
         })
 
-        if (airConditioningData && airConditioningData.length > 0) {
-          airConditioningData.forEach((acUsage) => {
-            userTotals[acUsage.userId] =
-              (userTotals[acUsage.userId] || 0) + acUsage.calculatedAmount
-          })
-        }
-
         const paidByUser = expenses.reduce((acc, expense) => {
           const userId = expense.paidBy.id
           acc[userId] = (acc[userId] || 0) + expense.amount

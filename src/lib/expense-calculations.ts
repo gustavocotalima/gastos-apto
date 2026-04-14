@@ -107,8 +107,7 @@ export function calculateMultipleExpensesSplits(
  */
 export function calculateBalances(
   expenses: Expense[],
-  activeUsers: User[],
-  airConditioningData?: Array<{ userId: string; calculatedAmount: number }>
+  activeUsers: User[]
 ): Array<{
   userId: string
   userName: string
@@ -118,17 +117,9 @@ export function calculateBalances(
 }> {
   const userTotals = calculateMultipleExpensesSplits(expenses, activeUsers)
 
-  // Add air conditioning costs if applicable
-  if (airConditioningData && airConditioningData.length > 0) {
-    airConditioningData.forEach(acUsage => {
-      userTotals[acUsage.userId] = (userTotals[acUsage.userId] || 0) + acUsage.calculatedAmount
-    })
-  }
-
-  // Calculate who paid what
   const paidByUser: Record<string, number> = {}
   expenses.forEach(expense => {
-    const paidBy = expense.category.id // This would normally be expense.paidBy.id
+    const paidBy = expense.category.id
     paidByUser[paidBy] = (paidByUser[paidBy] || 0) + expense.amount
   })
 

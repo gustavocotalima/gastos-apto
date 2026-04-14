@@ -114,13 +114,6 @@ export async function GET(
         }
       })
 
-      // Add air conditioning costs if applicable
-      if (airConditioningData && airConditioningData.length > 0) {
-        airConditioningData.forEach(acUsage => {
-          userTotals[acUsage.userId] = (userTotals[acUsage.userId] || 0) + acUsage.calculatedAmount
-        })
-      }
-
       return userTotals
     }
 
