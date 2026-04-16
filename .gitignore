@@ -56,6 +56,7 @@ next-env.d.ts
 # claude and project documentation
 CLAUDE.md
 project-plan.md
+.claude/
 
 # database
 *.db
