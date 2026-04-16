@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Gastos Apto
 
-## Getting Started
+Web app for splitting shared apartment expenses between any number of
+roommates. Handles monthly expenses, custom per-category splits, air
+conditioning electricity cost allocation with CIP (Brazilian public
+lighting tax) tier calculation, and monthly settlements.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** (App Router, standalone output)
+- **PostgreSQL** + **Prisma 7** (driver adapters, `@prisma/adapter-pg`)
+- **Better Auth** (email + password, sign-up disabled, rate-limited)
+- **Tailwind CSS v4** + **Radix UI** + **shadcn/ui** components
+- **React Hook Form** + **Zod** for forms and validation
+- **next-pwa** for offline support
+- **Vitest** (unit) + **Cypress** (e2e)
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env          # fill in values
+pnpm prisma migrate deploy    # apply schema
+pnpm prisma db seed           # optional: seed categories + CIP config
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required env vars (see `.env.example`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- `DATABASE_URL` — PostgreSQL connection string
+- `BETTER_AUTH_SECRET` — generate with `openssl rand -base64 32`
+- `BETTER_AUTH_URL` — base URL of the app
+- `NEXT_PUBLIC_APP_URL` — same as above, exposed to the client
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Sign-up is disabled by design. Create users directly in the database
+or via the admin UI.
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev          # Turbopack dev server
+pnpm build        # prisma generate && next build
+pnpm start        # production server
+pnpm lint         # eslint
+pnpm test         # vitest
+pnpm test:e2e     # cypress
+pnpm prisma studio
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Docker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+docker build -t gastos-apto .
+docker run -p 3000:3000 --env-file .env gastos-apto
+```
 
-## Deploy on Vercel
+The Dockerfile uses Next.js standalone output with a non-root runtime
+user. `prisma migrate deploy` runs on container start.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## How expense splitting works
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Categories** have a default split type: `EQUAL` (divided among
+  active users) or `CUSTOM` (per-user percentages via `CategorySplit`).
+- **Expenses** inherit the category split, but individual expenses can
+  override with `ExpenseSplit`.
+- **Air conditioning usage** is recorded per-user with total apartment
+  consumption. The app computes the AC user's extra cost (AC energy +
+  CIP tier delta from pushing consumption into a higher tier) and
+  generates a real `Expense` (Electricity bill) with custom splits, so
+  the AC surcharge flows through the normal settlement pipeline rather
+  than as a parallel charge.
+- **Monthly settlements** aggregate expenses by payer and share,
+  producing the net who-owes-whom for the month, and can be locked on
+  close.
+
+## Project layout
+
+```
+src/
+  app/
+    api/          Route handlers (expenses, categories, AC, CIP, months)
+    (pages)/      App Router pages (login, dashboard, categories, AC, settings)
+  components/     UI components (server and client)
+  lib/            auth, prisma client, env validation, calculations
+prisma/
+  schema.prisma   models + relations
+  migrations/     SQL migrations
+```
+
