@@ -3,15 +3,17 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { ExpenseForm } from "./expense-form"
 import { CopyExpensesDialog } from "./copy-expenses-dialog"
 
-export function InteractiveWrapper() {
+interface InteractiveWrapperProps {
+  currentMonthYear: string
+}
+
+export function InteractiveWrapper({ currentMonthYear }: InteractiveWrapperProps) {
   const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const currentMonthYear = searchParams.get("month") || new Date().toISOString().slice(0, 7)
 
   const handleRefresh = async () => {
     setRefreshing(true)

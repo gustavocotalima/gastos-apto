@@ -6,10 +6,15 @@ import { useCallback } from "react"
 
 interface MonthNavigationProps {
   initialMonth: string
+  billingCycleStartDay: number
   basePath?: string
 }
 
-export function MonthNavigation({ initialMonth, basePath = "/" }: MonthNavigationProps) {
+export function MonthNavigation({
+  initialMonth,
+  billingCycleStartDay,
+  basePath = "/",
+}: MonthNavigationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -23,6 +28,7 @@ export function MonthNavigation({ initialMonth, basePath = "/" }: MonthNavigatio
     <MonthSelectorSimple 
       selectedMonth={initialMonth} 
       onMonthChange={handleMonthChange} 
+      billingCycleStartDay={billingCycleStartDay}
     />
   )
 }

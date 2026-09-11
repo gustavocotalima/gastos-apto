@@ -1,5 +1,6 @@
 import { PrismaClient } from "../src/generated/prisma/client"
 import { PrismaPg } from "@prisma/adapter-pg"
+import { getCurrentBillingMonthYear } from "../src/lib/billing-cycle"
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
@@ -43,8 +44,16 @@ async function main() {
   }
   console.log(`Created/Updated ${categories.length} categories with EQUAL split type`)
 
-  // Create current month CIP configuration (independent of users)
-  const currentMonth = new Date().toISOString().slice(0, 7) // "YYYY-MM"
+  const appSettings = await prisma.appSettings.upsert({
+    where: { id: "default" },
+    update: {},
+    create: { id: "default" },
+  })
+
+  // Create current billing month's CIP configuration (independent of users)
+  const currentMonth = getCurrentBillingMonthYear(
+    appSettings.billingCycleStartDay
+  )
   
   await prisma.cipConfiguration.upsert({
     where: { monthYear: currentMonth },

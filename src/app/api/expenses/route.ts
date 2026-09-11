@@ -5,6 +5,11 @@ import { z } from "zod"
 import { getPaginationParams, createPaginatedResponse, getPrismaSkipTake } from "@/lib/pagination"
 import { handleApiError, AuthenticationError } from "@/lib/errors"
 import { headers } from "next/headers"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import {
+  getBillingMonthYear,
+  getCurrentBillingMonthYear,
+} from "@/lib/billing-cycle"
 
 const expenseSchema = z.object({
   date: z.string().transform((str) => new Date(str)),
@@ -24,7 +29,10 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const monthYear = searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
+    const requestedMonth = searchParams.get("monthYear")
+    const monthYear = requestedMonth || getCurrentBillingMonthYear(
+      await getBillingCycleStartDay()
+    )
     const paginationParams = getPaginationParams(searchParams)
     const { skip, take } = getPrismaSkipTake(paginationParams)
 
@@ -61,7 +69,8 @@ export async function POST(request: Request) {
     const body = await request.json()
     const validatedData = expenseSchema.parse(body)
 
-    const monthYear = validatedData.date.toISOString().slice(0, 7)
+    const startDay = await getBillingCycleStartDay()
+    const monthYear = getBillingMonthYear(validatedData.date, startDay)
 
     const expense = await prisma.expense.create({
       data: {

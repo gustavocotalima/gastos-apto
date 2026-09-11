@@ -24,7 +24,7 @@ interface CipConfiguration {
 }
 
 interface CipConfigurationFormProps {
-  monthYear?: string
+  monthYear: string
 }
 
 export function CipConfigurationForm({ monthYear }: CipConfigurationFormProps) {
@@ -32,7 +32,7 @@ export function CipConfigurationForm({ monthYear }: CipConfigurationFormProps) {
   const [isCopying, setIsCopying] = useState(false)
   const [config, setConfig] = useState<CipConfiguration | null>(null)
   
-  const currentMonth = monthYear || new Date().toISOString().slice(0, 7)
+  const currentMonth = monthYear
   const [baseValue, setBaseValue] = useState("")
   const [tiers, setTiers] = useState<Omit<CipTier, "id">[]>([
     { minKwh: 0, maxKwh: 100, percentage: 0.5 },

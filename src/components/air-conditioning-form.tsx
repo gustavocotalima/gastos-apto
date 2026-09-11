@@ -6,13 +6,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Calculator, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { useSession } from "@/lib/auth-client"
@@ -40,7 +33,7 @@ interface SimpleUser {
 }
 
 interface AirConditioningFormProps {
-  monthYear?: string
+  monthYear: string
   onCalculated?: (data: AirConditioningData) => void
 }
 
@@ -51,7 +44,7 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
   const [existingData, setExistingData] = useState<AirConditioningData | null>(null)
   const [users, setUsers] = useState<SimpleUser[]>([])
 
-  const currentMonth = monthYear || new Date().toISOString().slice(0, 7)
+  const currentMonth = monthYear
   const [airConsumption, setAirConsumption] = useState("")
   const [totalConsumption, setTotalConsumption] = useState("")
   const [totalBill, setTotalBill] = useState("")
@@ -245,18 +238,23 @@ export function AirConditioningForm({ monthYear, onCalculated }: AirConditioning
 
               <div className="space-y-2">
                 <Label htmlFor="paid-by">Quem pagou a conta?</Label>
-                <Select value={paidById} onValueChange={setPaidById} required>
-                  <SelectTrigger id="paid-by">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  id="paid-by"
+                  value={paidById}
+                  onChange={(event) => setPaidById(event.target.value)}
+                  required
+                  disabled={users.length === 0}
+                  className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-9 w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    Selecione
+                  </option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

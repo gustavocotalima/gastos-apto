@@ -3,13 +3,24 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "lucide-react"
+import {
+  getBillingCycleEndDate,
+  getBillingCycleStartDate,
+  getCurrentBillingMonthYear,
+  shiftMonthYear,
+} from "@/lib/billing-cycle"
 
 interface MonthSelectorSimpleProps {
   selectedMonth: string
   onMonthChange: (monthYear: string) => void
+  billingCycleStartDay: number
 }
 
-export function MonthSelectorSimple({ selectedMonth, onMonthChange }: MonthSelectorSimpleProps) {
+export function MonthSelectorSimple({
+  selectedMonth,
+  onMonthChange,
+  billingCycleStartDay,
+}: MonthSelectorSimpleProps) {
   const formatMonthDisplay = (monthYear: string) => {
     const [year, month] = monthYear.split("-")
     const date = new Date(parseInt(year), parseInt(month) - 1)
@@ -19,15 +30,26 @@ export function MonthSelectorSimple({ selectedMonth, onMonthChange }: MonthSelec
     })
   }
 
+  const formatCycleRange = (monthYear: string) => {
+    const formatDate = (date: Date) =>
+      date.toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        timeZone: "UTC",
+      })
+
+    const start = getBillingCycleStartDate(monthYear, billingCycleStartDay)
+    const end = getBillingCycleEndDate(monthYear, billingCycleStartDay)
+    return `${formatDate(start)}–${formatDate(end)}`
+  }
+
   // Generate last 12 months for selection
   const generateMonths = () => {
     const months = []
-    const now = new Date()
+    const currentMonth = getCurrentBillingMonthYear(billingCycleStartDay)
     
     for (let i = 0; i < 12; i++) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      const monthYear = date.toISOString().slice(0, 7)
-      months.push(monthYear)
+      months.push(shiftMonthYear(currentMonth, -i))
     }
     
     return months
@@ -55,6 +77,9 @@ export function MonthSelectorSimple({ selectedMonth, onMonthChange }: MonthSelec
             {availableMonths.map((monthYear) => (
               <SelectItem key={monthYear} value={monthYear}>
                 {formatMonthDisplay(monthYear)}
+                {billingCycleStartDay > 1
+                  ? ` (${formatCycleRange(monthYear)})`
+                  : ""}
               </SelectItem>
             ))}
           </SelectContent>

@@ -5,6 +5,8 @@ import { MonthNavigation } from "@/components/month-navigation"
 import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import { getCurrentBillingMonthYear } from "@/lib/billing-cycle"
 
 interface SearchParams {
   month?: string
@@ -24,7 +26,9 @@ export default async function AirConditioningPage({
   }
 
   const params = await searchParams
-  const selectedMonth = params.month || new Date().toISOString().slice(0, 7)
+  const billingCycleStartDay = await getBillingCycleStartDay()
+  const selectedMonth =
+    params.month || getCurrentBillingMonthYear(billingCycleStartDay)
 
   return (
     <div className="min-h-screen bg-background">
@@ -34,7 +38,11 @@ export default async function AirConditioningPage({
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Month Navigation */}
-        <MonthNavigation initialMonth={selectedMonth} basePath="/ar-condicionado" />
+        <MonthNavigation
+          initialMonth={selectedMonth}
+          billingCycleStartDay={billingCycleStartDay}
+          basePath="/ar-condicionado"
+        />
 
         {/* Air Conditioning Calculation */}
         <AirConditioningForm monthYear={selectedMonth} />

@@ -9,6 +9,8 @@ import { ExpenseCharts } from "@/components/expense-charts"
 import { Toaster } from "@/components/ui/sonner"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import { getCurrentBillingMonthYear } from "@/lib/billing-cycle"
 import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 
@@ -46,7 +48,9 @@ export default async function Home({
   }
 
   const params = await searchParams
-  const selectedMonth = params.month || new Date().toISOString().slice(0, 7)
+  const billingCycleStartDay = await getBillingCycleStartDay()
+  const selectedMonth =
+    params.month || getCurrentBillingMonthYear(billingCycleStartDay)
   const expenses = await getExpenses(selectedMonth)
 
   const getMonthDisplay = (monthYear: string) => {
@@ -66,7 +70,10 @@ export default async function Home({
 
       <main className="container mx-auto px-4 py-6 space-y-6">
         {/* Month Navigation */}
-        <MonthNavigation initialMonth={selectedMonth} />
+        <MonthNavigation
+          initialMonth={selectedMonth}
+          billingCycleStartDay={billingCycleStartDay}
+        />
 
         {/* Dashboard Cards */}
         <DashboardCardsServer expenses={expenses} />
@@ -84,7 +91,7 @@ export default async function Home({
                   Gerencie os gastos do apartamento
                 </CardDescription>
               </div>
-              <InteractiveWrapper />
+              <InteractiveWrapper currentMonthYear={selectedMonth} />
             </div>
           </CardHeader>
           <CardContent>

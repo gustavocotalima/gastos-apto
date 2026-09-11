@@ -72,6 +72,10 @@ user. `prisma migrate deploy` runs on container start.
 - **Monthly settlements** aggregate expenses by payer and share,
   producing the net who-owes-whom for the month, and can be locked on
   close.
+- **Billing cycles** can start on any day from 1 through 31. Shorter
+  months use their final day. For
+  example, a cycle starting on day 11 groups September 11 through
+  October 10 under September.
 
 ## Project layout
 
@@ -86,4 +90,3 @@ prisma/
   schema.prisma   models + relations
   migrations/     SQL migrations
 ```
-

@@ -4,6 +4,12 @@ import { prisma } from "@/lib/prisma"
 import { headers } from "next/headers"
 import { z } from "zod"
 import { handleApiError, AuthenticationError } from "@/lib/errors"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import {
+  getBillingCycleStartDate,
+  getCurrentBillingMonthYear,
+  shiftMonthYear,
+} from "@/lib/billing-cycle"
 
 const copyExpensesSchema = z.object({
   expenseIds: z.array(z.string().min(1).max(100)).min(1).max(100),
@@ -21,12 +27,11 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const currentMonthYear = searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
-
-    // Calculate previous month
-    const [year, month] = currentMonthYear.split("-").map(Number)
-    const prevDate = new Date(year, month - 2, 1) // month - 2 because JS months are 0-indexed
-    const prevMonthYear = prevDate.toISOString().slice(0, 7)
+    const requestedMonth = searchParams.get("monthYear")
+    const currentMonthYear = requestedMonth || getCurrentBillingMonthYear(
+      await getBillingCycleStartDay()
+    )
+    const prevMonthYear = shiftMonthYear(currentMonthYear, -1)
 
     const expenses = await prisma.expense.findMany({
       where: { monthYear: prevMonthYear },
@@ -75,9 +80,8 @@ export async function POST(request: Request) {
       }
     })
 
-    // Calculate the target date (first day of target month)
-    const [year, month] = targetMonthYear.split("-").map(Number)
-    const targetDate = new Date(year, month - 1, 1, 12, 0, 0)
+    const startDay = await getBillingCycleStartDay()
+    const targetDate = getBillingCycleStartDate(targetMonthYear, startDay)
 
     // Create copies of the expenses
     const createdExpenses = await Promise.all(

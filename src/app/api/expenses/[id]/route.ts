@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { headers } from "next/headers"
 import { handleApiError, AuthenticationError } from "@/lib/errors"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import { getBillingMonthYear } from "@/lib/billing-cycle"
 
 const expenseUpdateSchema = z.object({
   date: z.string().transform((str) => new Date(str)).optional(),
@@ -38,7 +40,8 @@ export async function PUT(
       monthYear?: string
     } = { ...validatedData }
     if (validatedData.date) {
-      updatedData.monthYear = validatedData.date.toISOString().slice(0, 7)
+      const startDay = await getBillingCycleStartDay()
+      updatedData.monthYear = getBillingMonthYear(validatedData.date, startDay)
     }
 
     const expense = await prisma.expense.update({

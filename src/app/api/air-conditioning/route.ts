@@ -9,6 +9,11 @@ import {
   ValidationError,
   NotFoundError,
 } from "@/lib/errors"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import {
+  getBillingCycleStartDate,
+  getCurrentBillingMonthYear,
+} from "@/lib/billing-cycle"
 
 const airConditioningSchema = z.object({
   monthYear: z.string().regex(/^\d{4}-\d{2}$/),
@@ -43,7 +48,10 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const monthYear = searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
+    const requestedMonth = searchParams.get("monthYear")
+    const monthYear = requestedMonth || getCurrentBillingMonthYear(
+      await getBillingCycleStartDay()
+    )
 
     const usage = await prisma.airConditioningUsage.findFirst({
       where: { monthYear, userId: session.user.id },
@@ -121,6 +129,7 @@ export async function POST(request: Request) {
     const existingUsage = await prisma.airConditioningUsage.findFirst({
       where: { monthYear: validatedData.monthYear, userId: session.user.id },
     })
+    const billingCycleStartDay = await getBillingCycleStartDay()
 
     const result = await prisma.$transaction(async (tx) => {
       const customSplits = activeUsers.map((user) => ({
@@ -132,7 +141,10 @@ export async function POST(request: Request) {
       }))
 
       const expenseData = {
-        date: new Date(validatedData.monthYear + "-01"),
+        date: getBillingCycleStartDate(
+          validatedData.monthYear,
+          billingCycleStartDay
+        ),
         amount: validatedData.totalBillAmount,
         description: "Conta de Energia",
         categoryId: electricityCategory.id,
@@ -204,8 +216,10 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const monthYear =
-      searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
+    const requestedMonth = searchParams.get("monthYear")
+    const monthYear = requestedMonth || getCurrentBillingMonthYear(
+      await getBillingCycleStartDay()
+    )
 
     const usage = await prisma.airConditioningUsage.findFirst({
       where: { monthYear, userId: session.user.id },

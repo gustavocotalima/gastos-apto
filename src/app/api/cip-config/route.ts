@@ -8,6 +8,8 @@ import {
   AuthenticationError,
   ConflictError,
 } from "@/lib/errors"
+import { getBillingCycleStartDay } from "@/lib/billing-cycle-settings"
+import { getCurrentBillingMonthYear } from "@/lib/billing-cycle"
 
 const cipTierSchema = z.object({
   minKwh: z.number().min(0).max(100_000),
@@ -29,7 +31,10 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const monthYear = searchParams.get("monthYear") || new Date().toISOString().slice(0, 7)
+    const requestedMonth = searchParams.get("monthYear")
+    const monthYear = requestedMonth || getCurrentBillingMonthYear(
+      await getBillingCycleStartDay()
+    )
 
     const config = await prisma.cipConfiguration.findUnique({
       where: { monthYear },

@@ -13,6 +13,13 @@ datasource db {
   provider = "postgresql"
 }
 
+model AppSettings {
+  id                   String   @id @default("default")
+  billingCycleStartDay Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
 // Better Auth tables
 model User {
   id            String    @id @default(cuid())
