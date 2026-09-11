@@ -65,7 +65,7 @@ export function BillingCycleSettingsForm({
         return
       }
 
-      toast.success("Dia inicial do mês atualizado!")
+      toast.success("Dia inicial atualizado e gastos reorganizados!")
       router.refresh()
     } catch {
       toast.error("Erro ao salvar o ciclo mensal")
@@ -106,8 +106,8 @@ export function BillingCycleSettingsForm({
               Gastos anteriores ao dia {selectedStartDay} entram no ciclo anterior.
             </p>
             <p className="text-xs text-muted-foreground">
-              A mudança vale para novos gastos e para gastos cuja data for editada.
-              Registros existentes não serão movidos automaticamente.
+              Ao salvar, os gastos existentes serão reorganizados de acordo com
+              suas datas.
             </p>
             {selectedStartDay > 28 && (
               <p className="text-xs text-muted-foreground">
